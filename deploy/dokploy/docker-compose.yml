@@ -9,6 +9,7 @@ services:
     expose:
       - "3000"
     networks:
+      - default
       - dokploy-network
     labels:
       - traefik.enable=true
