@@ -8,6 +8,14 @@ services:
       - ../files/server-local-data:/app/packages/twenty-server/.local-storage
     expose:
       - "3000"
+    networks:
+      - dokploy-network
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      - traefik.http.routers.twenty-crm.rule=Host(`crm.lan`)
+      - traefik.http.routers.twenty-crm.entrypoints=web
+      - traefik.http.services.twenty-crm.loadbalancer.server.port=3000
     environment:
       NODE_PORT: 3000
       # yamllint disable-line rule:line-length
@@ -77,3 +85,7 @@ services:
       timeout: 5s
       retries: 12
     restart: unless-stopped
+
+networks:
+  dokploy-network:
+    external: true
