@@ -5,7 +5,7 @@ services:
   server:
     image: twentycrm/twenty:${TAG}
     volumes:
-      - ../files/server-local-data:/app/packages/twenty-server/.local-storage
+      - ../../../files/server-local-data:/app/packages/twenty-server/.local-storage
     expose:
       - "3000"
     networks:
@@ -41,7 +41,7 @@ services:
   worker:
     image: twentycrm/twenty:${TAG}
     volumes:
-      - ../files/server-local-data:/app/packages/twenty-server/.local-storage
+      - ../../../files/server-local-data:/app/packages/twenty-server/.local-storage
     command: ["yarn", "worker:prod"]
     environment:
       # yamllint disable-line rule:line-length
@@ -63,7 +63,7 @@ services:
   db:
     image: postgres:16
     volumes:
-      - ../files/postgres:/var/lib/postgresql/data
+      - ../../../files/postgres:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: ${PG_DATABASE_NAME}
       POSTGRES_USER: ${PG_DATABASE_USER}

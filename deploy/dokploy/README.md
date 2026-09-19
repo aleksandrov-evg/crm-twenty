@@ -6,4 +6,4 @@ Compose предназначен для remote deployment server в Proxmox CT `
 
 Переменные из `.env.example` задаются в Dokploy → Compose → Environment. Реальный `.env`, пароль PostgreSQL и `ENCRYPTION_KEY` не коммитятся. Сгенерируйте пароль командой `openssl rand -hex 32`, а ключ — `openssl rand -base64 32`. Утрата `ENCRYPTION_KEY` делает сохранённые секреты CRM нечитаемыми.
 
-Постоянные пути `../files/postgres` и `../files/server-local-data` должны быть подключены на remote server к HDD до первого Deploy. Для CT `109` это ZFS dataset `tank/media/twenty`, смонтированный в `/etc/dokploy/compose/<COMPOSE_ID>/files`.
+Постоянные пути `../../../files/postgres` и `../../../files/server-local-data` должны быть подключены на remote server к HDD до первого Deploy. Так как Compose находится в `code/deploy/dokploy`, эти пути ведут за пределы Git clone: `/etc/dokploy/compose/<APP_NAME>/files`. Для CT `109` это ZFS dataset `tank/media/twenty`.
