@@ -70,3 +70,6 @@ screenshots/
 /.diag*.mjs
 /.compare*.mjs
 /.narrow*.mjs
+
+# Локальные секреты развёртывания Dokploy.
+/deploy/dokploy/.env
