@@ -6,8 +6,8 @@ services:
     image: twentycrm/twenty:${TAG}
     volumes:
       - ../../../files/server-local-data:/app/packages/twenty-server/.local-storage
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     networks:
       - default
       - dokploy-network
