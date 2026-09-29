@@ -1,0 +1,428 @@
+import { CoreApiClient } from 'twenty-client-sdk/core';
+import { defineLogicFunction, type RoutePayload } from 'twenty-sdk/define';
+import { Response } from 'twenty-sdk/logic-function';
+
+import {
+  eventNoteTitle,
+  planLeadAction,
+  type LeadActionInput,
+} from 'src/logic-functions/utils/lead-actions';
+import { TASK_TITLE_CONTACT } from 'src/logic-functions/utils/lead-normalize';
+
+export type StudioLeadActionPayload = LeadActionInput & {
+  landingLeadId?: string | null;
+  personId?: string | null;
+  opportunityId?: string | null;
+};
+
+type PersonNode = {
+  id: string;
+  landingLeadId?: string | null;
+  lifecycleStatus?: string | null;
+  firstContactedAt?: string | null;
+  nextActionAt?: string | null;
+};
+
+type OpportunityNode = {
+  id: string;
+  clientStage?: string | null;
+  leadReceivedAt?: string | null;
+  contactedAt?: string | null;
+};
+
+const PERSON_SELECTION = {
+  id: true,
+  landingLeadId: true,
+  lifecycleStatus: true,
+  firstContactedAt: true,
+  nextActionAt: true,
+} as const;
+
+const OPPORTUNITY_SELECTION = {
+  id: true,
+  clientStage: true,
+  leadReceivedAt: true,
+  contactedAt: true,
+} as const;
+
+const findPersonById = async (
+  client: CoreApiClient,
+  personId: string,
+): Promise<PersonNode | null> => {
+  const data = (await client.query({
+    person: {
+      __args: { filter: { id: { eq: personId } } },
+      ...PERSON_SELECTION,
+    },
+  } as any)) as any;
+  return data?.person ?? null;
+};
+
+const findPersonByLandingLeadId = async (
+  client: CoreApiClient,
+  landingLeadId: string,
+): Promise<PersonNode | null> => {
+  const data = (await client.query({
+    people: {
+      __args: {
+        filter: { landingLeadId: { eq: landingLeadId } },
+        first: 1,
+      },
+      edges: { node: PERSON_SELECTION },
+    },
+  } as any)) as any;
+  return data?.people?.edges?.[0]?.node ?? null;
+};
+
+const findOpportunityById = async (
+  client: CoreApiClient,
+  opportunityId: string,
+): Promise<OpportunityNode | null> => {
+  const data = (await client.query({
+    opportunity: {
+      __args: { filter: { id: { eq: opportunityId } } },
+      ...OPPORTUNITY_SELECTION,
+    },
+  } as any)) as any;
+  return data?.opportunity ?? null;
+};
+
+const findOpenOpportunity = async (
+  client: CoreApiClient,
+  personId: string,
+): Promise<OpportunityNode | null> => {
+  const data = (await client.query({
+    opportunities: {
+      __args: {
+        filter: { studioClientId: { eq: personId } },
+        first: 20,
+      },
+      edges: { node: OPPORTUNITY_SELECTION },
+    },
+  } as any)) as any;
+
+  const nodes: OpportunityNode[] = (data?.opportunities?.edges ?? []).map(
+    (edge: { node: OpportunityNode }) => edge.node,
+  );
+
+  const open = nodes.find(
+    (node) =>
+      node?.id &&
+      node.clientStage !== 'FIRST_PURCHASE' &&
+      node.clientStage !== 'LOST',
+  );
+  return open ?? nodes[0] ?? null;
+};
+
+const findNoteByEventTitle = async (
+  client: CoreApiClient,
+  title: string,
+): Promise<string | null> => {
+  const data = (await client.query({
+    notes: {
+      __args: {
+        filter: { title: { eq: title } },
+        first: 1,
+      },
+      edges: { node: { id: true } },
+    },
+  } as any)) as any;
+  return data?.notes?.edges?.[0]?.node?.id ?? null;
+};
+
+const createNoteForPerson = async (
+  client: CoreApiClient,
+  personId: string,
+  title: string,
+  body: string,
+): Promise<string> => {
+  const created = (await client.mutation({
+    createNote: {
+      __args: {
+        data: {
+          title,
+          bodyV2: { markdown: body },
+        },
+      },
+      id: true,
+    },
+  } as any)) as any;
+
+  const noteId = created?.createNote?.id as string | undefined;
+  if (!noteId) throw new Error('Failed to create Note');
+
+  await client.mutation({
+    createNoteTarget: {
+      __args: {
+        data: {
+          noteId,
+          targetPersonId: personId,
+        },
+      },
+      id: true,
+    },
+  } as any);
+
+  return noteId;
+};
+
+const createTaskForPerson = async (
+  client: CoreApiClient,
+  personId: string,
+  title: string,
+  dueAt: string,
+): Promise<string> => {
+  const created = (await client.mutation({
+    createTask: {
+      __args: {
+        data: {
+          title,
+          dueAt,
+          status: 'TODO',
+        },
+      },
+      id: true,
+    },
+  } as any)) as any;
+
+  const taskId = created?.createTask?.id as string | undefined;
+  if (!taskId) throw new Error('Failed to create Task');
+
+  await client.mutation({
+    createTaskTarget: {
+      __args: {
+        data: {
+          taskId,
+          targetPersonId: personId,
+        },
+      },
+      id: true,
+    },
+  } as any);
+
+  return taskId;
+};
+
+const listOpenTasksForPerson = async (
+  client: CoreApiClient,
+  personId: string,
+): Promise<Array<{ id: string; title: string }>> => {
+  const data = (await client.query({
+    taskTargets: {
+      __args: {
+        filter: { targetPersonId: { eq: personId } },
+        first: 50,
+      },
+      edges: {
+        node: {
+          task: {
+            id: true,
+            title: true,
+            status: true,
+          },
+        },
+      },
+    },
+  } as any)) as any;
+
+  const tasks: Array<{ id: string; title: string }> = [];
+  for (const edge of data?.taskTargets?.edges ?? []) {
+    const task = edge?.node?.task;
+    if (task?.id && task.status !== 'DONE') {
+      tasks.push({ id: task.id, title: String(task.title ?? '') });
+    }
+  }
+  return tasks;
+};
+
+const closeTasks = async (
+  client: CoreApiClient,
+  taskIds: string[],
+): Promise<void> => {
+  for (const id of taskIds) {
+    await client.mutation({
+      updateTask: {
+        __args: {
+          id,
+          data: { status: 'DONE' },
+        },
+        id: true,
+      },
+    } as any);
+  }
+};
+
+export const studioLeadActionsHandler = async (
+  routePayload: RoutePayload<StudioLeadActionPayload>,
+): Promise<Response> => {
+  const body = (routePayload.body ?? {}) as StudioLeadActionPayload;
+  const landingLeadId = String(body.landingLeadId ?? '').trim();
+  const personIdInput = String(body.personId ?? '').trim();
+  const opportunityIdInput = String(body.opportunityId ?? '').trim();
+
+  if (!landingLeadId && !personIdInput) {
+    return new Response(
+      { error: 'landingLeadId or personId is required' },
+      { status: 400 },
+    );
+  }
+
+  const client = new CoreApiClient();
+
+  let person: PersonNode | null = null;
+  if (personIdInput) {
+    person = await findPersonById(client, personIdInput);
+  } else {
+    person = await findPersonByLandingLeadId(client, landingLeadId);
+  }
+
+  if (!person?.id) {
+    return new Response({ error: 'Person not found' }, { status: 404 });
+  }
+
+  const clientEventId = String(body.clientEventId ?? '').trim();
+  if (clientEventId) {
+    const existingNoteId = await findNoteByEventTitle(
+      client,
+      eventNoteTitle(clientEventId),
+    );
+    if (existingNoteId) {
+      let opportunity = opportunityIdInput
+        ? await findOpportunityById(client, opportunityIdInput)
+        : await findOpenOpportunity(client, person.id);
+      return new Response(
+        {
+          personId: person.id,
+          opportunityId: opportunity?.id ?? null,
+          clientStage: opportunity?.clientStage ?? null,
+          lifecycleStatus: person.lifecycleStatus ?? null,
+          noteId: existingNoteId,
+          taskId: null,
+          duplicateEvent: true,
+          deepLinkPath: `/objects/people/${person.id}`,
+        },
+        { status: 200 },
+      );
+    }
+  }
+
+  let opportunity: OpportunityNode | null = null;
+  if (opportunityIdInput) {
+    opportunity = await findOpportunityById(client, opportunityIdInput);
+    if (!opportunity?.id) {
+      return new Response({ error: 'Opportunity not found' }, { status: 404 });
+    }
+  } else {
+    opportunity = await findOpenOpportunity(client, person.id);
+  }
+
+  const planned = planLeadAction({
+    input: body,
+    currentClientStage: opportunity?.clientStage,
+    currentLifecycleStatus: person.lifecycleStatus,
+    leadReceivedAt: opportunity?.leadReceivedAt,
+    alreadyContactedAt: opportunity?.contactedAt ?? person.firstContactedAt,
+  });
+
+  if (!planned.ok) {
+    return new Response({ error: planned.error }, { status: planned.status });
+  }
+
+  const { plan } = planned;
+
+  if (Object.keys(plan.personPatch).length > 0) {
+    const updated = (await client.mutation({
+      updatePerson: {
+        __args: { id: person.id, data: plan.personPatch },
+        ...PERSON_SELECTION,
+      },
+    } as any)) as any;
+    person = updated?.updatePerson ?? person;
+  }
+
+  if (plan.opportunityPatch) {
+    if (!opportunity?.id) {
+      return new Response(
+        { error: 'Open Opportunity required for this action' },
+        { status: 404 },
+      );
+    }
+    const updatedOpp = (await client.mutation({
+      updateOpportunity: {
+        __args: { id: opportunity.id, data: plan.opportunityPatch },
+        ...OPPORTUNITY_SELECTION,
+      },
+    } as any)) as any;
+    opportunity = updatedOpp?.updateOpportunity ?? opportunity;
+  }
+
+  const noteId = await createNoteForPerson(
+    client,
+    person.id,
+    plan.noteTitle,
+    plan.noteBody,
+  );
+
+  const openTasks = await listOpenTasksForPerson(client, person.id);
+  const toClose: string[] = [];
+  if (plan.closeContactTask) {
+    for (const task of openTasks) {
+      if (task.title === TASK_TITLE_CONTACT) toClose.push(task.id);
+    }
+  }
+  if (plan.closeOpenLeadTasks) {
+    const leadTitles = new Set([
+      TASK_TITLE_CONTACT,
+      'Перезвонить',
+      'Согласовать слот intro',
+      'Напомнить про intro',
+      'Предложить пакет',
+      'Связаться после no-show',
+      'Follow-up',
+    ]);
+    for (const task of openTasks) {
+      if (leadTitles.has(task.title)) toClose.push(task.id);
+    }
+  }
+  if (toClose.length) {
+    await closeTasks(client, [...new Set(toClose)]);
+  }
+
+  let taskId: string | null = null;
+  if (plan.createTask) {
+    taskId = await createTaskForPerson(
+      client,
+      person.id,
+      plan.createTask.title,
+      plan.createTask.dueAt,
+    );
+  }
+
+  return new Response(
+    {
+      personId: person.id,
+      opportunityId: opportunity?.id ?? null,
+      clientStage: plan.resultingClientStage,
+      lifecycleStatus: plan.resultingLifecycleStatus,
+      noteId,
+      taskId,
+      duplicateEvent: false,
+      deepLinkPath: `/objects/people/${person.id}`,
+    },
+    { status: 200 },
+  );
+};
+
+export default defineLogicFunction({
+  universalIdentifier: '7c4e9f12-8a3b-4d6e-9c1f-2e5a8b7d4c6f',
+  name: 'studio-lead-actions',
+  description:
+    'Lead funnel actions from Telegram ops-bot / secretary: notes, stages, tasks',
+  timeoutSeconds: 30,
+  handler: studioLeadActionsHandler,
+  httpRouteTriggerSettings: {
+    path: '/studio/lead-actions',
+    httpMethod: 'POST',
+    isAuthRequired: true,
+  },
+});

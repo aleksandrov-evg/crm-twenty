@@ -31,3 +31,23 @@ export const SESSION_FORMAT_OPTIONS = [
   { id: 'd7ffcbcd-1293-4233-a08e-a330ac732304', value: 'STRETCHING', label: 'Стрейчинг', position: 4, color: 'pink' },
   { id: 'f6d938c0-c66c-435e-b88e-dff2c46017b6', value: 'TRX', label: 'TRX', position: 5, color: 'orange' },
 ] as const;
+
+export const PREFERRED_CHANNEL_OPTIONS = [
+  { id: 'f0b4e2f3-f5c3-496d-a9b1-099f37de44be', value: 'PHONE', label: 'Телефон', position: 0, color: 'green' },
+  { id: '87e8bc73-7d90-4b28-beb5-2bc9151505dc', value: 'TELEGRAM', label: 'Telegram', position: 1, color: 'sky' },
+  { id: 'e0afb8af-a93d-4538-aeff-d5ad583ca0d9', value: 'WHATSAPP', label: 'WhatsApp', position: 2, color: 'green' },
+  { id: '6e935a36-569a-4c2b-9d0b-bd044b473245', value: 'EMAIL', label: 'Email', position: 3, color: 'blue' },
+  { id: 'eb7eaec1-260c-49da-9023-e933c6427422', value: 'OTHER', label: 'Другое', position: 4, color: 'gray' },
+  { id: '33450ecb-e25a-4643-9d64-edd0707eac11', value: 'UNKNOWN', label: 'Неизвестно', position: 5, color: 'gray' },
+] as const;
+
+export const TIME_BAND_OPTIONS = [
+  { id: '6857cde0-6e6d-4b0a-81d0-5c2ceaeb96dc', value: 'WEEKDAY_MORNING', label: 'Будни утро', position: 0, color: 'yellow' },
+  { id: '46cf84ec-be5b-4577-a648-613562dd8917', value: 'WEEKDAY_DAY', label: 'Будни день', position: 1, color: 'orange' },
+  { id: '1a7f9fc7-c28e-4a50-af94-28f29b8e0571', value: 'WEEKDAY_EVENING', label: 'Будни вечер', position: 2, color: 'purple' },
+  { id: '16304afd-e348-48c7-aecf-60820f38c573', value: 'WEEKEND_MORNING', label: 'Выходные утро', position: 3, color: 'yellow' },
+  { id: '37d4e37c-73a5-4885-ae7c-5308a807300e', value: 'WEEKEND_DAY', label: 'Выходные день', position: 4, color: 'orange' },
+  { id: '83791d19-af78-4bca-867d-082c138d8e38', value: 'WEEKEND_EVENING', label: 'Выходные вечер', position: 5, color: 'purple' },
+  { id: '1bd69a6e-c6fe-4998-a723-540e6a58875e', value: 'FLEXIBLE', label: 'Гибко', position: 6, color: 'green' },
+  { id: 'c8c972e0-804b-45be-9eda-b08538ba522c', value: 'UNKNOWN', label: 'Неизвестно', position: 7, color: 'gray' },
+] as const;

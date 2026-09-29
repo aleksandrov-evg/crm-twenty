@@ -18,7 +18,7 @@ export default defineView({
   objectUniversalIdentifier: STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.opportunity.universalIdentifier,
   type: ViewType.KANBAN,
   icon: 'IconLayoutKanban',
-  position: 0,
+  position: 2,
   mainGroupByFieldMetadataUniversalIdentifier: OPPORTUNITY_CLIENT_STAGE_FIELD_UNIVERSAL_IDENTIFIER,
   fields: [
     { universalIdentifier: '45e979f8-5a5d-4002-b9ea-18917473a0f8', fieldMetadataUniversalIdentifier: opportunityFields.name.universalIdentifier, position: 0, isVisible: true, size: 220 },

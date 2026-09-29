@@ -19,7 +19,8 @@
     "twenty": "twenty",
     "lint": "oxlint -c .oxlintrc.json .",
     "lint:fix": "oxlint --fix -c .oxlintrc.json .",
-    "typecheck": "tsgo --noEmit -p tsconfig.json"
+    "typecheck": "tsgo --noEmit -p tsconfig.json",
+    "test:unit": "node --experimental-strip-types --test 'src/logic-functions/utils/__tests__/*.test.ts'"
   },
   "devDependencies": {
     "@types/node": "^24.7.2",
