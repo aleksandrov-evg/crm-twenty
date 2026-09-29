@@ -86,3 +86,5 @@ Auth: Bearer API key (как WF-01). Path в app: `/studio/lead-actions` → п�
 3. Будущие automation — тот же контракт.
 
 В Note желательно указывать **канал** (`Канал: Telegram. …`) — бот пишет это автоматически с кнопок первого касания.
+
+Read-only снимок стадии и истории Notes для переотправки карточки: [lead-status.md](lead-status.md) (`POST /s/studio/lead-status`).

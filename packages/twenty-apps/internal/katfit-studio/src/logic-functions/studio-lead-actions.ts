@@ -8,6 +8,16 @@ import {
   type LeadActionInput,
 } from 'src/logic-functions/utils/lead-actions';
 import {
+  findOpenOpportunity,
+  findOpportunityById,
+  findPersonById,
+  findPersonByLandingLeadId,
+  LEAD_OPPORTUNITY_LOOKUP_SELECTION,
+  LEAD_PERSON_LOOKUP_SELECTION,
+  type LeadOpportunityLookup,
+  type LeadPersonLookup,
+} from 'src/logic-functions/utils/lead-crm-lookup';
+import {
   TASK_TITLE_CONTACT,
   TASK_TITLES_CONTACT_LEGACY,
   TASK_TITLES_FOLLOWUP_LEGACY,
@@ -17,105 +27,6 @@ export type StudioLeadActionPayload = LeadActionInput & {
   landingLeadId?: string | null;
   personId?: string | null;
   opportunityId?: string | null;
-};
-
-type PersonNode = {
-  id: string;
-  landingLeadId?: string | null;
-  lifecycleStatus?: string | null;
-  firstContactedAt?: string | null;
-  nextActionAt?: string | null;
-};
-
-type OpportunityNode = {
-  id: string;
-  clientStage?: string | null;
-  leadReceivedAt?: string | null;
-  contactedAt?: string | null;
-};
-
-const PERSON_SELECTION = {
-  id: true,
-  landingLeadId: true,
-  lifecycleStatus: true,
-  firstContactedAt: true,
-  nextActionAt: true,
-} as const;
-
-const OPPORTUNITY_SELECTION = {
-  id: true,
-  clientStage: true,
-  leadReceivedAt: true,
-  contactedAt: true,
-} as const;
-
-const findPersonById = async (
-  client: CoreApiClient,
-  personId: string,
-): Promise<PersonNode | null> => {
-  const data = (await client.query({
-    person: {
-      __args: { filter: { id: { eq: personId } } },
-      ...PERSON_SELECTION,
-    },
-  } as any)) as any;
-  return data?.person ?? null;
-};
-
-const findPersonByLandingLeadId = async (
-  client: CoreApiClient,
-  landingLeadId: string,
-): Promise<PersonNode | null> => {
-  const data = (await client.query({
-    people: {
-      __args: {
-        filter: { landingLeadId: { eq: landingLeadId } },
-        first: 1,
-      },
-      edges: { node: PERSON_SELECTION },
-    },
-  } as any)) as any;
-  return data?.people?.edges?.[0]?.node ?? null;
-};
-
-const findOpportunityById = async (
-  client: CoreApiClient,
-  opportunityId: string,
-): Promise<OpportunityNode | null> => {
-  const data = (await client.query({
-    opportunity: {
-      __args: { filter: { id: { eq: opportunityId } } },
-      ...OPPORTUNITY_SELECTION,
-    },
-  } as any)) as any;
-  return data?.opportunity ?? null;
-};
-
-const findOpenOpportunity = async (
-  client: CoreApiClient,
-  personId: string,
-): Promise<OpportunityNode | null> => {
-  const data = (await client.query({
-    opportunities: {
-      __args: {
-        filter: { studioClientId: { eq: personId } },
-        first: 20,
-      },
-      edges: { node: OPPORTUNITY_SELECTION },
-    },
-  } as any)) as any;
-
-  const nodes: OpportunityNode[] = (data?.opportunities?.edges ?? []).map(
-    (edge: { node: OpportunityNode }) => edge.node,
-  );
-
-  const open = nodes.find(
-    (node) =>
-      node?.id &&
-      node.clientStage !== 'FIRST_PURCHASE' &&
-      node.clientStage !== 'LOST',
-  );
-  return open ?? nodes[0] ?? null;
 };
 
 const findNoteByEventTitle = async (
@@ -273,7 +184,7 @@ export const studioLeadActionsHandler = async (
 
   const client = new CoreApiClient();
 
-  let person: PersonNode | null = null;
+  let person: LeadPersonLookup | null = null;
   if (personIdInput) {
     person = await findPersonById(client, personIdInput);
   } else {
@@ -284,7 +195,7 @@ export const studioLeadActionsHandler = async (
     return new Response({ error: 'Person not found' }, { status: 404 });
   }
 
-  let ensuredPerson: PersonNode = person;
+  let ensuredPerson: LeadPersonLookup = person;
 
   const clientEventId = String(body.clientEventId ?? '').trim();
   if (clientEventId) {
@@ -312,7 +223,7 @@ export const studioLeadActionsHandler = async (
     }
   }
 
-  let opportunity: OpportunityNode | null = null;
+  let opportunity: LeadOpportunityLookup | null = null;
   if (opportunityIdInput) {
     opportunity = await findOpportunityById(client, opportunityIdInput);
     if (!opportunity?.id) {
@@ -341,10 +252,10 @@ export const studioLeadActionsHandler = async (
     const updated = (await client.mutation({
       updatePerson: {
         __args: { id: ensuredPerson.id, data: plan.personPatch },
-        ...PERSON_SELECTION,
+        ...LEAD_PERSON_LOOKUP_SELECTION,
       },
     } as any)) as any;
-    const nextPerson = updated?.updatePerson as PersonNode | null | undefined;
+    const nextPerson = updated?.updatePerson as LeadPersonLookup | null | undefined;
     if (nextPerson?.id) {
       ensuredPerson = nextPerson;
     }
@@ -360,7 +271,7 @@ export const studioLeadActionsHandler = async (
     const updatedOpp = (await client.mutation({
       updateOpportunity: {
         __args: { id: opportunity.id, data: plan.opportunityPatch },
-        ...OPPORTUNITY_SELECTION,
+        ...LEAD_OPPORTUNITY_LOOKUP_SELECTION,
       },
     } as any)) as any;
     opportunity = updatedOpp?.updateOpportunity ?? opportunity;

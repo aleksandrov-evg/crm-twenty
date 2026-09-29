@@ -13,6 +13,10 @@ Landing form → PostgreSQL leads → telegram-lead-notifier
 Telegram buttons / reply / secretary
   └─ POST /s/studio/lead-actions
         → Note + stage / lifecycle / tasks (see docs/lead-actions.md)
+
+Telegram resend card (ID36 / /resend)
+  └─ POST /s/studio/lead-status
+        → stage + channel + notes history (see docs/lead-status.md)
 ```
 
 Manager lists in Opportunities: **Новые лиды**, **Нарушение SLA**, **Воронка первой покупки**, **Связались — ждут intro**, **Intro без покупки**.
@@ -23,13 +27,13 @@ Apply to a workspace (`twenty plan` / `apply`) and enable `CRM_SYNC_ENABLED` on 
 
 - Person lifecycle, lead source / last-touch, lead timestamps, landing ID, consents, full UTM, preferred channel, **lastContactChannel**, formats, time bands, next action.
 - Opportunity pipeline fields (stage, SLA timestamps, lead/UTM snapshots, lost reason).
-- WF-01 ingest + **LeadAction API** (`studio-lead-actions`) for Telegram ops-bot (channel + thinking Task).
+- WF-01 ingest + **LeadAction API** (`studio-lead-actions`) + **LeadStatus API** (`studio-lead-status`) for Telegram ops-bot.
 - Products, groups, sessions, bookings, memberships, payments, make-up credits and relations.
 - Default application function role.
 
 Not in this app yet: product seed data, booking capacity Logic Functions, membership balance mutations, WF-02 SLA cron, WF-03 Telegram-from-CRM (outbound stays in poller).
 
-Contract: [docs/lead-actions.md](docs/lead-actions.md).
+Contracts: [docs/lead-actions.md](docs/lead-actions.md), [docs/lead-status.md](docs/lead-status.md).
 
 ## Validate
 
