@@ -41,6 +41,15 @@ export const PREFERRED_CHANNEL_OPTIONS = [
   { id: '33450ecb-e25a-4643-9d64-edd0707eac11', value: 'UNKNOWN', label: 'Неизвестно', position: 5, color: 'gray' },
 ] as const;
 
+/** Last outbound contact channel used by the studio (Telegram ops-bot). */
+export const LAST_CONTACT_CHANNEL_OPTIONS = [
+  { id: 'a1c2d3e4-f5a6-4789-b012-3456789abc01', value: 'CALL', label: 'Звонок', position: 0, color: 'green' },
+  { id: 'a1c2d3e4-f5a6-4789-b012-3456789abc02', value: 'SMS', label: 'SMS', position: 1, color: 'blue' },
+  { id: 'a1c2d3e4-f5a6-4789-b012-3456789abc03', value: 'MAX', label: 'MAX', position: 2, color: 'purple' },
+  { id: 'a1c2d3e4-f5a6-4789-b012-3456789abc04', value: 'TELEGRAM', label: 'Telegram', position: 3, color: 'sky' },
+  { id: 'a1c2d3e4-f5a6-4789-b012-3456789abc05', value: 'WHATSAPP', label: 'WhatsApp', position: 4, color: 'green' },
+] as const;
+
 export const TIME_BAND_OPTIONS = [
   { id: '6857cde0-6e6d-4b0a-81d0-5c2ceaeb96dc', value: 'WEEKDAY_MORNING', label: 'Будни утро', position: 0, color: 'yellow' },
   { id: '46cf84ec-be5b-4577-a648-613562dd8917', value: 'WEEKDAY_DAY', label: 'Будни день', position: 1, color: 'orange' },

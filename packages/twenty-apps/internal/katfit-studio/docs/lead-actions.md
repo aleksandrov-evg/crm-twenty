@@ -13,9 +13,10 @@ Auth: Bearer API key (как WF-01). Path в app: `/studio/lead-actions` → п�
   "personId": null,
   "opportunityId": null,
   "action": "contacted",
-  "note": "Пообщались в мессенджере, интересует реформер вечером",
+  "note": "Канал: Telegram. Написала в Telegram — думает.",
   "lostReason": null,
-  "nextActionAt": null,
+  "nextActionAt": "2026-09-30T18:00:00.000Z",
+  "channel": "TELEGRAM",
   "actorLabel": "Анна (Telegram)",
   "clientEventId": "tg:123:456:contacted"
 }
@@ -30,6 +31,7 @@ Auth: Bearer API key (как WF-01). Path в app: `/studio/lead-actions` → п�
 | `note` | для `note`; иначе опц. | текст заметки (без медсведений) |
 | `lostReason` | для `lost` | `NO_RESPONSE` \| `NO_SUITABLE_TIME` \| `PRICE` \| `LOCATION` \| `FORMAT_MISMATCH` \| `CHANGED_MIND` \| `DUPLICATE` \| `OTHER` |
 | `nextActionAt` | нет | ISO datetime для Task / `Person.nextActionAt` |
+| `channel` | нет | `CALL` \| `SMS` \| `MAX` \| `TELEGRAM` \| `WHATSAPP` → `Person.lastContactChannel` |
 | `actorLabel` | нет | кто выполнил (попадёт в Note) |
 | `clientEventId` | нет | идемпотентность; повтор с тем же id → 200 без повторной мутации |
 
@@ -39,15 +41,17 @@ Auth: Bearer API key (как WF-01). Path в app: `/studio/lead-actions` → п�
 
 | action | Person | Opportunity | Note | Task |
 | --- | --- | --- | --- | --- |
-| `note` | — | — | да | опц. follow-up если `nextActionAt` |
-| `no_answer` | — | стадию **не** двигать | да | «Написать снова» (+2ч или `nextActionAt`) |
-| `contacted` | `CONTACTED`, `firstContactedAt` | `CONTACTED`, `contactedAt`, `firstResponseMinutes` | да | закрыть «Написать клиенту» |
+| `note` | опц. `lastContactChannel` | — | да | опц. follow-up если `nextActionAt` |
+| `no_answer` | `nextActionAt` + канал | стадию **не** двигать | да | «Написать снова» (+2ч или `nextActionAt`) |
+| `contacted` | `CONTACTED`, `firstContactedAt`, канал | `CONTACTED`, `contactedAt`, `firstResponseMinutes` | да | закрыть «Написать клиенту»; если note про «думает» → Task «Вернуться к думающим» (+2д / `nextActionAt`) |
 | `intro_offered` | `CONTACTED` если ещё раньше | `INTRO_OFFERED` | да | «Согласовать слот intro» |
 | `intro_booked` | `INTRO_BOOKED` | `INTRO_BOOKED` | да (+ текст слота) | напоминание; **Booking не создаём** |
 | `intro_attended` | `INTRO_ATTENDED` | `INTRO_ATTENDED` | да | «Предложить пакет» |
 | `no_show` | — | остаётся `INTRO_BOOKED` | да | «Написать после no-show» |
 | `first_purchase` | `ACTIVE_CLIENT` | `FIRST_PURCHASE` | да | закрыть lead-задачи |
 | `lost` | — | `LOST` + `studioLostReason` | да | закрыть открытые lead-задачи |
+
+`Person.lastContactChannel` — чем студия последний раз писала/звонила. Не путать с `preferredChannel` (предпочтение клиента).
 
 Терминальные стадии Opportunity (`FIRST_PURCHASE`, `LOST`) назад не двигаются (кроме идемпотентного повтора того же action).
 
@@ -80,3 +84,5 @@ Auth: Bearer API key (как WF-01). Path в app: `/studio/lead-actions` → п�
 1. `telegram-lead-notifier` — inline buttons + reply.
 2. Секретарь (шаблоны / NL) — те же `action`.
 3. Будущие automation — тот же контракт.
+
+В Note желательно указывать **канал** (`Канал: Telegram. …`) — бот пишет это автоматически с кнопок первого касания.

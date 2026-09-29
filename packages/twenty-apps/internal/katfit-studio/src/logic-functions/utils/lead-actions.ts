@@ -45,6 +45,8 @@ export type LeadActionInput = {
   nextActionAt?: string | null;
   actorLabel?: string | null;
   clientEventId?: string | null;
+  /** Last outbound channel: CALL | SMS | MAX | TELEGRAM | WHATSAPP */
+  channel?: string | null;
 };
 
 export type LeadActionPlan = {
@@ -60,6 +62,21 @@ export type LeadActionPlan = {
   resultingLifecycleStatus: string | null;
 };
 
+export const LAST_CONTACT_CHANNELS = [
+  'CALL',
+  'SMS',
+  'MAX',
+  'TELEGRAM',
+  'WHATSAPP',
+] as const;
+
+export type LastContactChannel = (typeof LAST_CONTACT_CHANNELS)[number];
+
+export const isLastContactChannel = (
+  value: string,
+): value is LastContactChannel =>
+  (LAST_CONTACT_CHANNELS as readonly string[]).includes(value);
+
 export const isLeadAction = (value: string): value is LeadAction =>
   (LEAD_ACTIONS as readonly string[]).includes(value);
 
@@ -71,6 +88,17 @@ export const eventNoteTitle = (clientEventId: string): string =>
 
 const hoursFromNow = (hours: number, from: Date = new Date()): string =>
   new Date(from.getTime() + hours * 60 * 60 * 1000).toISOString();
+
+const noteLooksLikeThinking = (note: string): boolean =>
+  /думает|ушла думать|пока подума/.test(String(note ?? '').toLowerCase());
+
+const channelPersonPatch = (
+  channel?: string | null,
+): Record<string, unknown> => {
+  const raw = String(channel ?? '').trim().toUpperCase();
+  if (!isLastContactChannel(raw)) return {};
+  return { lastContactChannel: raw };
+};
 
 const appendActor = (body: string, actorLabel?: string | null): string => {
   const trimmed = body.trim();
@@ -224,9 +252,10 @@ export const planLeadAction = ({
         ok: true,
         plan: {
           ...base,
-          personPatch: input.nextActionAt
-            ? { nextActionAt: dueAt }
-            : {},
+          personPatch: {
+            ...channelPersonPatch(input.channel),
+            ...(input.nextActionAt ? { nextActionAt: dueAt } : {}),
+          },
           opportunityPatch: null,
           closeContactTask: false,
           closeOpenLeadTasks: false,
@@ -243,7 +272,10 @@ export const planLeadAction = ({
         ok: true,
         plan: {
           ...base,
-          personPatch: { nextActionAt: dueAt },
+          personPatch: {
+            nextActionAt: dueAt,
+            ...channelPersonPatch(input.channel),
+          },
           opportunityPatch: null,
           closeContactTask: false,
           closeOpenLeadTasks: false,
@@ -279,6 +311,10 @@ export const planLeadAction = ({
       if (firstResponseMinutes !== null) {
         oppPatch.firstResponseMinutes = firstResponseMinutes;
       }
+      const thinking = noteLooksLikeThinking(noteText);
+      const thinkingDueAt = input.nextActionAt
+        ? new Date(input.nextActionAt).toISOString()
+        : hoursFromNow(48, now);
       return {
         ok: true,
         plan: {
@@ -286,12 +322,15 @@ export const planLeadAction = ({
           personPatch: {
             lifecycleStatus: 'CONTACTED',
             firstContactedAt: contactedAt,
-            nextActionAt: dueAt,
+            nextActionAt: thinking ? thinkingDueAt : dueAt,
+            ...channelPersonPatch(input.channel),
           },
           opportunityPatch: oppPatch,
           closeContactTask: true,
           closeOpenLeadTasks: false,
-          createTask: null,
+          createTask: thinking
+            ? { title: 'Вернуться к думающим', dueAt: thinkingDueAt }
+            : null,
           resultingClientStage: 'CONTACTED',
           resultingLifecycleStatus: 'CONTACTED',
         },
@@ -516,8 +555,12 @@ export const parseSecretaryIntent = (
     return { action: 'intro_booked', note: raw };
   }
 
-  if (/предложил.*intro|intro предложен|предложила intro/.test(lower)) {
+  if (/согласил.*intro|предложил.*intro|intro предложен|предложила intro/.test(lower)) {
     return { action: 'intro_offered', note: raw };
+  }
+
+  if (/думает|ушла думать|пока подума/.test(lower)) {
+    return { action: 'contacted', note: raw };
   }
 
   if (

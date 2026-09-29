@@ -15,15 +15,15 @@ Telegram buttons / reply / secretary
         → Note + stage / lifecycle / tasks (see docs/lead-actions.md)
 ```
 
-Manager lists in Opportunities: **Новые лиды**, **Нарушение SLA**, **Воронка первой покупки**, **Intro без покупки**.
+Manager lists in Opportunities: **Новые лиды**, **Нарушение SLA**, **Воронка первой покупки**, **Связались — ждут intro**, **Intro без покупки**.
 
 Apply to a workspace (`twenty plan` / `apply`) and enable `CRM_SYNC_ENABLED` on the poller before this appears in production UI.
 
 ## Also in 0.1.0+
 
-- Person lifecycle, lead source / last-touch, lead timestamps, landing ID, consents, full UTM, preferred channel, formats, time bands, next action.
+- Person lifecycle, lead source / last-touch, lead timestamps, landing ID, consents, full UTM, preferred channel, **lastContactChannel**, formats, time bands, next action.
 - Opportunity pipeline fields (stage, SLA timestamps, lead/UTM snapshots, lost reason).
-- WF-01 ingest + **LeadAction API** (`studio-lead-actions`) for Telegram ops-bot.
+- WF-01 ingest + **LeadAction API** (`studio-lead-actions`) for Telegram ops-bot (channel + thinking Task).
 - Products, groups, sessions, bookings, memberships, payments, make-up credits and relations.
 - Default application function role.
 

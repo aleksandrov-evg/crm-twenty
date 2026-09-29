@@ -381,13 +381,20 @@ export const studioLeadActionsHandler = async (
   ]);
   if (plan.closeContactTask) {
     for (const task of openTasks) {
-      if (contactTitles.has(task.title)) toClose.push(task.id);
+      if (
+        contactTitles.has(task.title) ||
+        task.title === 'Написать снова' ||
+        task.title === 'Вернуться к думающим'
+      ) {
+        toClose.push(task.id);
+      }
     }
   }
   if (plan.closeOpenLeadTasks) {
     const leadTitles = new Set([
       ...contactTitles,
       'Написать снова',
+      'Вернуться к думающим',
       'Согласовать слот intro',
       'Напомнить про intro',
       'Предложить пакет',
