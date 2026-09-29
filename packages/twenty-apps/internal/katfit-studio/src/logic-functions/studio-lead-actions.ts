@@ -7,7 +7,11 @@ import {
   planLeadAction,
   type LeadActionInput,
 } from 'src/logic-functions/utils/lead-actions';
-import { TASK_TITLE_CONTACT } from 'src/logic-functions/utils/lead-normalize';
+import {
+  TASK_TITLE_CONTACT,
+  TASK_TITLES_CONTACT_LEGACY,
+  TASK_TITLES_FOLLOWUP_LEGACY,
+} from 'src/logic-functions/utils/lead-normalize';
 
 export type StudioLeadActionPayload = LeadActionInput & {
   landingLeadId?: string | null;
@@ -371,20 +375,25 @@ export const studioLeadActionsHandler = async (
 
   const openTasks = await listOpenTasksForPerson(client, ensuredPerson.id);
   const toClose: string[] = [];
+  const contactTitles = new Set<string>([
+    TASK_TITLE_CONTACT,
+    ...TASK_TITLES_CONTACT_LEGACY,
+  ]);
   if (plan.closeContactTask) {
     for (const task of openTasks) {
-      if (task.title === TASK_TITLE_CONTACT) toClose.push(task.id);
+      if (contactTitles.has(task.title)) toClose.push(task.id);
     }
   }
   if (plan.closeOpenLeadTasks) {
     const leadTitles = new Set([
-      TASK_TITLE_CONTACT,
-      'Перезвонить',
+      ...contactTitles,
+      'Написать снова',
       'Согласовать слот intro',
       'Напомнить про intro',
       'Предложить пакет',
-      'Связаться после no-show',
+      'Написать после no-show',
       'Follow-up',
+      ...TASK_TITLES_FOLLOWUP_LEGACY,
     ]);
     for (const task of openTasks) {
       if (leadTitles.has(task.title)) toClose.push(task.id);

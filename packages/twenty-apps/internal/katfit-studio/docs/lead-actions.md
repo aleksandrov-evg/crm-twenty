@@ -13,7 +13,7 @@ Auth: Bearer API key (как WF-01). Path в app: `/studio/lead-actions` → п�
   "personId": null,
   "opportunityId": null,
   "action": "contacted",
-  "note": "Дозвонились, интересует реформер вечером",
+  "note": "Пообщались в мессенджере, интересует реформер вечером",
   "lostReason": null,
   "nextActionAt": null,
   "actorLabel": "Анна (Telegram)",
@@ -40,12 +40,12 @@ Auth: Bearer API key (как WF-01). Path в app: `/studio/lead-actions` → п�
 | action | Person | Opportunity | Note | Task |
 | --- | --- | --- | --- | --- |
 | `note` | — | — | да | опц. follow-up если `nextActionAt` |
-| `no_answer` | — | стадию **не** двигать | да | «Перезвонить» (+2ч или `nextActionAt`) |
-| `contacted` | `CONTACTED`, `firstContactedAt` | `CONTACTED`, `contactedAt`, `firstResponseMinutes` | да | закрыть «Связаться» |
+| `no_answer` | — | стадию **не** двигать | да | «Написать снова» (+2ч или `nextActionAt`) |
+| `contacted` | `CONTACTED`, `firstContactedAt` | `CONTACTED`, `contactedAt`, `firstResponseMinutes` | да | закрыть «Написать клиенту» |
 | `intro_offered` | `CONTACTED` если ещё раньше | `INTRO_OFFERED` | да | «Согласовать слот intro» |
 | `intro_booked` | `INTRO_BOOKED` | `INTRO_BOOKED` | да (+ текст слота) | напоминание; **Booking не создаём** |
 | `intro_attended` | `INTRO_ATTENDED` | `INTRO_ATTENDED` | да | «Предложить пакет» |
-| `no_show` | — | остаётся `INTRO_BOOKED` | да | «Связаться после no-show» |
+| `no_show` | — | остаётся `INTRO_BOOKED` | да | «Написать после no-show» |
 | `first_purchase` | `ACTIVE_CLIENT` | `FIRST_PURCHASE` | да | закрыть lead-задачи |
 | `lost` | — | `LOST` + `studioLostReason` | да | закрыть открытые lead-задачи |
 

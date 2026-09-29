@@ -9,6 +9,7 @@ import {
   slaDueAt,
   splitPersonName,
   TASK_TITLE_CONTACT,
+  TASK_TITLES_CONTACT_LEGACY,
   TERMINAL_OPPORTUNITY_STAGES,
   toIsoDate,
 } from 'src/logic-functions/utils/lead-normalize';
@@ -248,9 +249,13 @@ const findOpenContactTask = async (
 
   for (const edge of data?.taskTargets?.edges ?? []) {
     const task = edge?.node?.task;
+    const contactTitles = new Set<string>([
+      TASK_TITLE_CONTACT,
+      ...TASK_TITLES_CONTACT_LEGACY,
+    ]);
     if (
       task?.id &&
-      task.title === TASK_TITLE_CONTACT &&
+      contactTitles.has(task.title) &&
       task.status !== 'DONE'
     ) {
       return task.id;

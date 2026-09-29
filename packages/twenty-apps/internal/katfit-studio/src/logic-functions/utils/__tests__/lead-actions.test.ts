@@ -78,7 +78,7 @@ describe('planLeadAction', () => {
     assert.equal(result.ok, true);
     if (!result.ok) return;
     assert.equal(result.plan.opportunityPatch, null);
-    assert.equal(result.plan.createTask?.title, 'Перезвонить');
+    assert.equal(result.plan.createTask?.title, 'Написать снова');
     assert.equal(result.plan.resultingClientStage, 'NEW_LEAD');
   });
 
@@ -119,12 +119,12 @@ describe('planLeadAction', () => {
 
 describe('parseSecretaryIntent', () => {
   it('detects no_answer', () => {
-    const parsed = parseSecretaryIntent('Недозвон, перезвонить вечером');
+    const parsed = parseSecretaryIntent('Написала, никто не ответил');
     assert.equal(parsed?.action, 'no_answer');
   });
 
   it('detects contacted', () => {
-    const parsed = parseSecretaryIntent('Дозвонилась, интересует реформер');
+    const parsed = parseSecretaryIntent('Пообщались в мессенджере, интересует реформер');
     assert.equal(parsed?.action, 'contacted');
   });
 

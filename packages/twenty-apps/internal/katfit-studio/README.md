@@ -8,7 +8,7 @@ Internal Twenty application for KATFIT BALANCE CRM operations.
 Landing form → PostgreSQL leads → telegram-lead-notifier
   ├─ Telegram alert (supergroup + inline keyboard + deep-link)
   └─ POST /s/studio/leads (WF-01)
-        → Person + Opportunity (WAITLIST) + Task «Связаться» (due +2h)
+        → Person + Opportunity (WAITLIST) + Task «Написать клиенту» (due +2h)
 
 Telegram buttons / reply / secretary
   └─ POST /s/studio/lead-actions

@@ -82,9 +82,9 @@ const appendActor = (body: string, actorLabel?: string | null): string => {
 const defaultNoteForAction = (action: LeadAction): string => {
   switch (action) {
     case 'no_answer':
-      return 'Не ответил(а) / недозвон.';
+      return 'Написала в мессенджере / на почту — ответа нет.';
     case 'contacted':
-      return 'Содержательный контакт состоялся.';
+      return 'Пообщались в мессенджере / по почте.';
     case 'intro_offered':
       return 'Предложены слоты intro.';
     case 'intro_booked':
@@ -247,7 +247,7 @@ export const planLeadAction = ({
           opportunityPatch: null,
           closeContactTask: false,
           closeOpenLeadTasks: false,
-          createTask: { title: 'Перезвонить', dueAt },
+          createTask: { title: 'Написать снова', dueAt },
           resultingClientStage: stage,
           resultingLifecycleStatus: currentLifecycleStatus ?? null,
         },
@@ -401,7 +401,7 @@ export const planLeadAction = ({
           opportunityPatch: null,
           closeContactTask: false,
           closeOpenLeadTasks: false,
-          createTask: { title: 'Связаться после no-show', dueAt },
+          createTask: { title: 'Написать после no-show', dueAt },
           resultingClientStage: stage,
           resultingLifecycleStatus: currentLifecycleStatus ?? null,
         },
@@ -493,7 +493,9 @@ export const parseSecretaryIntent = (
   }
 
   if (
-    /недозвон|не ответил|не бер[её]т|нет ответа|не дозвони/.test(lower)
+    /недозвон|не ответил|не бер[её]т|нет ответа|не дозвони|написала?,?\s*но\s*никто|написала?,?\s*нет ответа|никто не ответил|молчит|без ответа/.test(
+      lower,
+    )
   ) {
     return { action: 'no_answer', note: raw };
   }
@@ -519,7 +521,9 @@ export const parseSecretaryIntent = (
   }
 
   if (
-    /дозвонил|связал|контакт состоял|поговорил|написала? ответ/.test(lower)
+    /дозвонил|связал|контакт состоял|поговорил|пообщал|переписк|ответил[аи]? в (мессенджер|телеграм|whatsapp|вотсап|почт)|написала? ответ|по почте/.test(
+      lower,
+    )
   ) {
     return { action: 'contacted', note: raw };
   }

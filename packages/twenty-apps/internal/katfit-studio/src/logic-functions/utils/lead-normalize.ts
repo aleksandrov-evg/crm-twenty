@@ -190,6 +190,12 @@ export const slaDueAt = (from: Date = new Date()): string => {
   return new Date(from.getTime() + 2 * 60 * 60 * 1000).toISOString();
 };
 
-export const TASK_TITLE_CONTACT = 'Связаться';
+export const TASK_TITLE_CONTACT = 'Написать клиенту';
+/** Старые заголовки задач — закрывать вместе с актуальными. */
+export const TASK_TITLES_CONTACT_LEGACY = ['Связаться'] as const;
+export const TASK_TITLES_FOLLOWUP_LEGACY = [
+  'Перезвонить',
+  'Связаться после no-show',
+] as const;
 
 export const TERMINAL_OPPORTUNITY_STAGES = new Set(['FIRST_PURCHASE', 'LOST']);
