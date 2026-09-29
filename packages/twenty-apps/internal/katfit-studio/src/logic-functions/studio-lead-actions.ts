@@ -280,6 +280,8 @@ export const studioLeadActionsHandler = async (
     return new Response({ error: 'Person not found' }, { status: 404 });
   }
 
+  let ensuredPerson: PersonNode = person;
+
   const clientEventId = String(body.clientEventId ?? '').trim();
   if (clientEventId) {
     const existingNoteId = await findNoteByEventTitle(
@@ -287,19 +289,19 @@ export const studioLeadActionsHandler = async (
       eventNoteTitle(clientEventId),
     );
     if (existingNoteId) {
-      let opportunity = opportunityIdInput
+      const opportunity = opportunityIdInput
         ? await findOpportunityById(client, opportunityIdInput)
-        : await findOpenOpportunity(client, person.id);
+        : await findOpenOpportunity(client, ensuredPerson.id);
       return new Response(
         {
-          personId: person.id,
+          personId: ensuredPerson.id,
           opportunityId: opportunity?.id ?? null,
           clientStage: opportunity?.clientStage ?? null,
-          lifecycleStatus: person.lifecycleStatus ?? null,
+          lifecycleStatus: ensuredPerson.lifecycleStatus ?? null,
           noteId: existingNoteId,
           taskId: null,
           duplicateEvent: true,
-          deepLinkPath: `/objects/people/${person.id}`,
+          deepLinkPath: `/objects/people/${ensuredPerson.id}`,
         },
         { status: 200 },
       );
@@ -313,15 +315,16 @@ export const studioLeadActionsHandler = async (
       return new Response({ error: 'Opportunity not found' }, { status: 404 });
     }
   } else {
-    opportunity = await findOpenOpportunity(client, person.id);
+    opportunity = await findOpenOpportunity(client, ensuredPerson.id);
   }
 
   const planned = planLeadAction({
     input: body,
     currentClientStage: opportunity?.clientStage,
-    currentLifecycleStatus: person.lifecycleStatus,
+    currentLifecycleStatus: ensuredPerson.lifecycleStatus,
     leadReceivedAt: opportunity?.leadReceivedAt,
-    alreadyContactedAt: opportunity?.contactedAt ?? person.firstContactedAt,
+    alreadyContactedAt:
+      opportunity?.contactedAt ?? ensuredPerson.firstContactedAt,
   });
 
   if (!planned.ok) {
@@ -333,11 +336,14 @@ export const studioLeadActionsHandler = async (
   if (Object.keys(plan.personPatch).length > 0) {
     const updated = (await client.mutation({
       updatePerson: {
-        __args: { id: person.id, data: plan.personPatch },
+        __args: { id: ensuredPerson.id, data: plan.personPatch },
         ...PERSON_SELECTION,
       },
     } as any)) as any;
-    person = updated?.updatePerson ?? person;
+    const nextPerson = updated?.updatePerson as PersonNode | null | undefined;
+    if (nextPerson?.id) {
+      ensuredPerson = nextPerson;
+    }
   }
 
   if (plan.opportunityPatch) {
@@ -358,12 +364,12 @@ export const studioLeadActionsHandler = async (
 
   const noteId = await createNoteForPerson(
     client,
-    person.id,
+    ensuredPerson.id,
     plan.noteTitle,
     plan.noteBody,
   );
 
-  const openTasks = await listOpenTasksForPerson(client, person.id);
+  const openTasks = await listOpenTasksForPerson(client, ensuredPerson.id);
   const toClose: string[] = [];
   if (plan.closeContactTask) {
     for (const task of openTasks) {
@@ -392,7 +398,7 @@ export const studioLeadActionsHandler = async (
   if (plan.createTask) {
     taskId = await createTaskForPerson(
       client,
-      person.id,
+      ensuredPerson.id,
       plan.createTask.title,
       plan.createTask.dueAt,
     );
@@ -400,14 +406,14 @@ export const studioLeadActionsHandler = async (
 
   return new Response(
     {
-      personId: person.id,
+      personId: ensuredPerson.id,
       opportunityId: opportunity?.id ?? null,
       clientStage: plan.resultingClientStage,
       lifecycleStatus: plan.resultingLifecycleStatus,
       noteId,
       taskId,
       duplicateEvent: false,
-      deepLinkPath: `/objects/people/${person.id}`,
+      deepLinkPath: `/objects/people/${ensuredPerson.id}`,
     },
     { status: 200 },
   );
