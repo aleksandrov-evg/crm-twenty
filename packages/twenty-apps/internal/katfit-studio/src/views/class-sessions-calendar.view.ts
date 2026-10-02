@@ -1,6 +1,7 @@
 import {
   defineView,
   ViewCalendarLayout,
+  ViewFilterOperand,
   ViewType,
 } from 'twenty-sdk/define';
 
@@ -20,6 +21,15 @@ export default defineView({
   calendarLayout: ViewCalendarLayout.MONTH,
   calendarFieldMetadataUniversalIdentifier:
     '37033f49-d77e-4127-901c-20ff00e951c3',
+  filters: [
+    {
+      universalIdentifier: '2b96cafa-bb7f-4571-b710-4470c4e6edc2',
+      fieldMetadataUniversalIdentifier:
+        '81326384-2b7c-4213-955c-d83c923bfeb8',
+      operand: ViewFilterOperand.IS_NOT,
+      value: ['COMPLETED', 'CANCELLED_BY_STUDIO'],
+    },
+  ],
   fields: [
     {
       universalIdentifier: 'd3a808cf-44dc-4a5b-a821-cc8f4a3f7f58',

@@ -35,6 +35,8 @@ Not in this app yet: product seed data, booking capacity Logic Functions, member
 
 Contracts: [docs/lead-actions.md](docs/lead-actions.md), [docs/lead-status.md](docs/lead-status.md).
 
+User guide: [Календарь занятий](docs/training-calendar-guide.ru.md).
+
 ## Validate
 
 ```bash

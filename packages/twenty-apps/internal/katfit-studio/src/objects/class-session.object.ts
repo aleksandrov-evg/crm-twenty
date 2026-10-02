@@ -1,5 +1,6 @@
 import { defineObject, FieldType } from 'twenty-sdk/define';
 
+import { RUSSIAN_RUBLE_DEFAULT_VALUE } from 'src/constants/currency';
 import { SESSION_FORMAT_OPTIONS } from 'src/constants/select-options';
 
 export const CLASS_SESSION_OBJECT_UNIVERSAL_IDENTIFIER = 'a7c3d8b4-8a67-483e-ae59-0af24b746110';
@@ -28,7 +29,7 @@ export default defineObject({
     },
     { universalIdentifier: 'f7ec746a-e359-47ef-af98-670a2116e63b', type: FieldType.NUMBER, name: 'bookedCount', label: 'Забронировано', icon: 'IconUsers', defaultValue: 0 },
     { universalIdentifier: '30505af1-2755-471e-9c7b-195ed50e68d2', type: FieldType.NUMBER, name: 'attendedCount', label: 'Посетило', icon: 'IconUserCheck', defaultValue: 0 },
-    { universalIdentifier: 'b1ac595a-5172-40ef-81bb-f4e26ca7981b', type: FieldType.CURRENCY, name: 'trainerCompensation', label: 'Оплата тренеру', icon: 'IconCash', isNullable: true },
+    { universalIdentifier: 'b1ac595a-5172-40ef-81bb-f4e26ca7981b', type: FieldType.CURRENCY, name: 'trainerCompensation', label: 'Оплата тренеру', icon: 'IconCash', isNullable: true, defaultValue: RUSSIAN_RUBLE_DEFAULT_VALUE },
     { universalIdentifier: '66cb5ea8-721e-4c92-8dc6-7ca5caf648c6', type: FieldType.TEXT, name: 'studioCancellationReason', label: 'Причина отмены', icon: 'IconNote', isNullable: true },
     { universalIdentifier: '49cc8fa6-6591-4e23-a538-ab494d601bfd', type: FieldType.DATE_TIME, name: 'completionLockedAt', label: 'Закрыто', icon: 'IconLock', isNullable: true },
   ],

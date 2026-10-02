@@ -1,5 +1,6 @@
 import { defineObject, FieldType } from 'twenty-sdk/define';
 
+import { RUSSIAN_RUBLE_DEFAULT_VALUE } from 'src/constants/currency';
 import { SESSION_FORMAT_OPTIONS } from 'src/constants/select-options';
 
 export const PRODUCT_OBJECT_UNIVERSAL_IDENTIFIER =
@@ -69,6 +70,7 @@ export default defineObject({
       name: 'price',
       label: 'Цена',
       icon: 'IconCurrencyRubel',
+      defaultValue: RUSSIAN_RUBLE_DEFAULT_VALUE,
     },
     {
       universalIdentifier: '4e659744-43b1-4dc9-a82f-b6682961e391',

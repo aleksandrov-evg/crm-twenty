@@ -1,5 +1,7 @@
 import { defineObject, FieldType } from 'twenty-sdk/define';
 
+import { RUSSIAN_RUBLE_DEFAULT_VALUE } from 'src/constants/currency';
+
 export const MEMBERSHIP_OBJECT_UNIVERSAL_IDENTIFIER = '295ff896-3ff5-429e-b390-b52825ae03eb';
 export const MEMBERSHIP_NAME_FIELD_UNIVERSAL_IDENTIFIER = '0a9d58bd-3f66-423c-a87c-26f13625f6da';
 
@@ -31,8 +33,8 @@ export default defineObject({
     { universalIdentifier: '873fd19d-b832-4c38-84e8-41d75be54477', type: FieldType.NUMBER, name: 'visitsReserved', label: 'Зарезервировано', icon: 'IconLock', defaultValue: 0 },
     { universalIdentifier: '82a276a4-da80-4829-af12-a6322978a11d', type: FieldType.NUMBER, name: 'visitsConsumed', label: 'Использовано', icon: 'IconCheck', defaultValue: 0 },
     { universalIdentifier: '6d77f594-17c4-4a95-ad8c-5b259b4bcad7', type: FieldType.NUMBER, name: 'visitsAvailable', label: 'Доступно', icon: 'IconTicket', defaultValue: 0 },
-    { universalIdentifier: '25eb80e1-6f53-4d74-aa9f-fc6963c08647', type: FieldType.CURRENCY, name: 'purchasePrice', label: 'Цена покупки', icon: 'IconCurrencyRubel' },
-    { universalIdentifier: '6a89bb77-10a6-4aa4-83f7-6f120bb2ee89', type: FieldType.CURRENCY, name: 'refundAmount', label: 'Возвращено', icon: 'IconCashBanknoteOff', isNullable: true },
+    { universalIdentifier: '25eb80e1-6f53-4d74-aa9f-fc6963c08647', type: FieldType.CURRENCY, name: 'purchasePrice', label: 'Цена покупки', icon: 'IconCurrencyRubel', defaultValue: RUSSIAN_RUBLE_DEFAULT_VALUE },
+    { universalIdentifier: '6a89bb77-10a6-4aa4-83f7-6f120bb2ee89', type: FieldType.CURRENCY, name: 'refundAmount', label: 'Возвращено', icon: 'IconCashBanknoteOff', isNullable: true, defaultValue: RUSSIAN_RUBLE_DEFAULT_VALUE },
     { universalIdentifier: 'f4d0c4b6-3b91-45dc-95fc-c0640c55e39a', type: FieldType.NUMBER, name: 'studioExtensionDays', label: 'Продление, дней', icon: 'IconCalendarPlus', defaultValue: 0 },
   ],
 });
