@@ -19,7 +19,6 @@ services:
       - traefik.http.services.twenty-crm-stage.loadbalancer.server.port=3000
     environment:
       TZ: Europe/Moscow
-      NODE_PORT: ${NODE_PORT}
       LOGIC_FUNCTION_TYPE: LOCAL
       # yamllint disable-line rule:line-length
       PG_DATABASE_URL: postgres://${PG_DATABASE_USER}:${PG_DATABASE_PASSWORD}@${PG_DATABASE_HOST}:${PG_DATABASE_PORT}/${PG_DATABASE_NAME}
