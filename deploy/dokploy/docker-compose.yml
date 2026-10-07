@@ -19,6 +19,7 @@ services:
       - traefik.http.services.twenty-crm.loadbalancer.server.port=3000
     environment:
       NODE_PORT: 3000
+      LOGIC_FUNCTION_TYPE: LOCAL
       # yamllint disable-line rule:line-length
       PG_DATABASE_URL: postgres://${PG_DATABASE_USER}:${PG_DATABASE_PASSWORD}@${PG_DATABASE_HOST}:${PG_DATABASE_PORT}/${PG_DATABASE_NAME}
       REDIS_URL: redis://redis:6379
@@ -42,6 +43,7 @@ services:
       - ../../../files/server-local-data:/app/packages/twenty-server/.local-storage
     command: ["yarn", "worker:prod"]
     environment:
+      LOGIC_FUNCTION_TYPE: LOCAL
       # yamllint disable-line rule:line-length
       PG_DATABASE_URL: postgres://${PG_DATABASE_USER}:${PG_DATABASE_PASSWORD}@${PG_DATABASE_HOST}:${PG_DATABASE_PORT}/${PG_DATABASE_NAME}
       REDIS_URL: redis://redis:6379
