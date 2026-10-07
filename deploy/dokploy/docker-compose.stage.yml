@@ -5,7 +5,7 @@ services:
   server:
     image: twentycrm/twenty:${TAG}
     volumes:
-      - ../../../files/server-local-data:/app/packages/twenty-server/.local-storage
+      - ../../../files/server-local-data-stage:/app/packages/twenty-server/.local-storage
     ports:
       - "${HOST_PORT}:3000"
     networks:
@@ -40,7 +40,7 @@ services:
   worker:
     image: twentycrm/twenty:${TAG}
     volumes:
-      - ../../../files/server-local-data:/app/packages/twenty-server/.local-storage
+      - ../../../files/server-local-data-stage:/app/packages/twenty-server/.local-storage
     command: ["yarn", "worker:prod"]
     environment:
       TZ: Europe/Moscow
