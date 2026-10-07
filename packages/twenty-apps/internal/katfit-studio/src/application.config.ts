@@ -1,7 +1,7 @@
 import { defineApplication } from 'twenty-sdk/define';
 
 export const APPLICATION_UNIVERSAL_IDENTIFIER =
-  '6a981c21-747b-4f88-a691-785f002ba2f3';
+  'e674aabf-638d-4ad0-af00-2018ac0fa7ce';
 
 export default defineApplication({
   universalIdentifier: APPLICATION_UNIVERSAL_IDENTIFIER,
