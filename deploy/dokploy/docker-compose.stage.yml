@@ -1,5 +1,5 @@
 ---
-name: twenty
+name: twenty-stage
 
 services:
   server:
@@ -7,16 +7,16 @@ services:
     volumes:
       - ../../../files/server-local-data:/app/packages/twenty-server/.local-storage
     ports:
-      - "3000:3000"
+      - "${HOST_PORT}:3000"
     networks:
       - default
       - dokploy-network
     labels:
       - traefik.enable=true
       - traefik.docker.network=dokploy-network
-      - traefik.http.routers.twenty-crm.rule=Host(`crm.lan`)
-      - traefik.http.routers.twenty-crm.entrypoints=web
-      - traefik.http.services.twenty-crm.loadbalancer.server.port=3000
+      - traefik.http.routers.twenty-crm-stage.rule=Host(`crm-stage.lan`)
+      - traefik.http.routers.twenty-crm-stage.entrypoints=web
+      - traefik.http.services.twenty-crm-stage.loadbalancer.server.port=3000
     environment:
       TZ: Europe/Moscow
       NODE_PORT: ${NODE_PORT}
