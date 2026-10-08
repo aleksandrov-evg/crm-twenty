@@ -113,6 +113,12 @@ const addDays = (date: Date, days: number): Date => {
   return result;
 };
 
+const startOfDay = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+};
+
 const toDateKey = (date: Date): string =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
     date.getDate(),
@@ -120,7 +126,7 @@ const toDateKey = (date: Date): string =>
 
 const getWeekDays = (selectedDate: Date, mode: 'day' | 'week'): Date[] =>
   mode === 'day'
-    ? [selectedDate]
+    ? [startOfDay(selectedDate)]
     : Array.from({ length: 7 }, (_, index) => addDays(startOfWeek(selectedDate), index));
 
 const ClassSchedule = () => {
