@@ -1,10 +1,14 @@
 import { RecordCalendarGridDay } from '@/object-record/record-calendar/grid/components/RecordCalendarGridDay';
+import { RecordCalendarTimeGrid } from '@/object-record/record-calendar/grid/components/RecordCalendarTimeGrid';
 import { RecordCalendarDragDropContext } from '@/object-record/record-calendar/components/RecordCalendarDragDropContext';
+import { useRecordCalendarContextOrThrow } from '@/object-record/record-calendar/contexts/RecordCalendarContext';
 import { useRecordCalendarDaysRange } from '@/object-record/record-calendar/hooks/useRecordCalendarDaysRange';
 import { recordCalendarSelectedDateComponentState } from '@/object-record/record-calendar/states/recordCalendarSelectedDateComponentState';
+import { recordIndexCalendarFieldMetadataIdComponentState } from '@/object-record/record-index/states/recordIndexCalendarFieldMetadataIdComponentState';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { styled } from '@linaria/react';
 import { isPlainDateInSameMonth } from 'twenty-shared/utils';
+import { FieldMetadataType } from 'twenty-shared/types';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { ViewCalendarLayout } from '~/generated-metadata/graphql';
 
@@ -57,39 +61,63 @@ type RecordCalendarGridProps = {
 export const RecordCalendarGrid = ({
   calendarLayout,
 }: RecordCalendarGridProps) => {
+  const { objectMetadataItem } = useRecordCalendarContextOrThrow();
   const recordCalendarSelectedDate = useAtomComponentStateValue(
     recordCalendarSelectedDateComponentState,
+  );
+  const recordIndexCalendarFieldMetadataId = useAtomComponentStateValue(
+    recordIndexCalendarFieldMetadataIdComponentState,
   );
   const { days, weekDayLabels } = useRecordCalendarDaysRange(
     recordCalendarSelectedDate,
     calendarLayout,
   );
+  const calendarFieldMetadataItem = objectMetadataItem.fields.find(
+    (fieldMetadataItem) =>
+      fieldMetadataItem.id === recordIndexCalendarFieldMetadataId,
+  );
+  const shouldRenderTimeGrid =
+    (calendarLayout === ViewCalendarLayout.DAY ||
+      calendarLayout === ViewCalendarLayout.WEEK) &&
+    calendarFieldMetadataItem?.type === FieldMetadataType.DATE_TIME;
 
   return (
     <RecordCalendarDragDropContext>
-      <StyledContainer isDayLayout={calendarLayout === ViewCalendarLayout.DAY}>
-        <StyledHeader>
-          {weekDayLabels.map((label, index) => (
-            <StyledHeaderDay key={index}>{label}</StyledHeaderDay>
-          ))}
-        </StyledHeader>
-        <StyledBody>
-          {days.map((row) => (
-            <StyledRow key={row[0].toString()}>
-              {row.map((day) => (
-                <RecordCalendarGridDay
-                  key={day.toString()}
-                  day={day}
-                  isOtherMonth={
-                    calendarLayout === ViewCalendarLayout.MONTH &&
-                    !isPlainDateInSameMonth(day, recordCalendarSelectedDate)
-                  }
-                />
-              ))}
-            </StyledRow>
-          ))}
-        </StyledBody>
-      </StyledContainer>
+      {shouldRenderTimeGrid ? (
+        <RecordCalendarTimeGrid
+          calendarLayout={calendarLayout}
+          dateFieldName={calendarFieldMetadataItem.name}
+        />
+      ) : (
+        <StyledContainer
+          isDayLayout={calendarLayout === ViewCalendarLayout.DAY}
+        >
+          <StyledHeader>
+            {weekDayLabels.map((label, index) => (
+              <StyledHeaderDay key={index}>{label}</StyledHeaderDay>
+            ))}
+          </StyledHeader>
+          <StyledBody>
+            {days.map((row) => (
+              <StyledRow key={row[0].toString()}>
+                {row.map((day) => (
+                  <RecordCalendarGridDay
+                    key={day.toString()}
+                    day={day}
+                    isOtherMonth={
+                      calendarLayout === ViewCalendarLayout.MONTH &&
+                      !isPlainDateInSameMonth(
+                        day,
+                        recordCalendarSelectedDate,
+                      )
+                    }
+                  />
+                ))}
+              </StyledRow>
+            ))}
+          </StyledBody>
+        </StyledContainer>
+      )}
     </RecordCalendarDragDropContext>
   );
 };
