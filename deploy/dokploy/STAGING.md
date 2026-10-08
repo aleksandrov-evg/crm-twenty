@@ -103,21 +103,36 @@ Twenty-приложение с активным Twenty remote: обновляе�
 
 ```bash
 cd packages/twenty-apps/internal/katfit-studio
+yarn install --immutable
 yarn twenty remote:add --url http://crm-stage.lan --as stage
 yarn twenty remote:add --url http://crm.lan --as production
 yarn twenty remote:list
 ```
 
-Для каждого изменения приложения используйте следующий порядок:
+`yarn install --immutable` нужен только при первой настройке рабочей копии или
+после изменения зависимостей. Не выполняйте `remote:add` повторно, если remote
+уже есть в `remote:list`.
 
-1. Убедитесь, что текущий commit содержит именно ту версию кода, которую нужно
-   выпускать, и переключите remote на stage:
+Для каждого изменения приложения используйте следующий порядок. Сохраните SHA
+commit из stage: production должен получить ту же версию.
+
+1. Проверьте код и примените его к stage:
 
    ```bash
+   cd packages/twenty-apps/internal/katfit-studio
+   git status --short
+   git rev-parse HEAD
+   yarn typecheck
+   yarn lint
+   yarn test:unit
+   yarn twenty dev:typecheck
    yarn twenty remote:use stage
    yarn twenty plan
    yarn twenty apply
    ```
+
+   `git status --short` перед релизом не должен показывать непреднамеренных
+   изменений. Запишите SHA, выведенный `git rev-parse HEAD`.
 
    `plan` ничего не изменяет: проверьте в нем additions, changes и особенно
    deletions. Если приложение еще ни разу не устанавливалось на stage, сразу
@@ -125,10 +140,14 @@ yarn twenty remote:list
 
 2. Протестируйте изменения в `crm-stage.lan`. Если менялись сущности или
    поля, отдельно проверьте сценарии с уже существующими данными.
-3. Перед production `apply` выберите в Databasus свежий успешный backup set и
-   убедитесь, что активен именно production remote:
+3. Перед production `apply` выберите в Databasus свежий успешный backup set.
+   Проверьте, что SHA не изменился с момента stage, и переключитесь на
+   production remote:
 
    ```bash
+   cd packages/twenty-apps/internal/katfit-studio
+   git status --short
+   git rev-parse HEAD
    yarn twenty remote:use production
    yarn twenty remote:list
    yarn twenty plan
@@ -143,6 +162,14 @@ yarn twenty remote:list
 4. После `apply` проверьте production-сценарии и logs logic functions. Если
    план содержит удаление metadata entities, остановитесь и отдельно подтвердите
    влияние на данные и способ отката.
+
+   Для просмотра логов конкретной функции:
+
+   ```bash
+   yarn twenty dev:function:logs -n studio-leads
+   yarn twenty dev:function:logs -n studio-lead-actions
+   yarn twenty dev:function:logs -n studio-lead-status
+   ```
 
 Dokploy нужен только для жизненного цикла самого Twenty-сервера: начальная
 установка, смена `TAG`, Compose-параметров, ports, volumes и server-level
