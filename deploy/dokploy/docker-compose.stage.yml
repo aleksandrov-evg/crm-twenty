@@ -1,9 +1,18 @@
 ---
 name: twenty-stage
 
+x-twenty-build: &twenty-build
+  build:
+    context: ../..
+    dockerfile: packages/twenty-docker/twenty/Dockerfile
+    target: twenty
+    args:
+      APP_VERSION: ${TAG}
+  image: twenty-stage-local:${TAG}
+
 services:
   server:
-    image: twentycrm/twenty:${TAG}
+    <<: *twenty-build
     volumes:
       - ../../../files/server-local-data-stage:/app/packages/twenty-server/.local-storage
     ports:
@@ -38,7 +47,7 @@ services:
     restart: unless-stopped
 
   worker:
-    image: twentycrm/twenty:${TAG}
+    <<: *twenty-build
     volumes:
       - ../../../files/server-local-data-stage:/app/packages/twenty-server/.local-storage
     command: ["yarn", "worker:prod"]
