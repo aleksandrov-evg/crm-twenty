@@ -29,13 +29,16 @@ Apply to a workspace (`twenty plan` / `apply`) and enable `CRM_SYNC_ENABLED` on 
 - Opportunity pipeline fields (stage, SLA timestamps, lead/UTM snapshots, lost reason).
 - WF-01 ingest + **LeadAction API** (`studio-lead-actions`) + **LeadStatus API** (`studio-lead-status`) for Telegram ops-bot.
 - Products, groups, sessions, bookings, memberships, payments, make-up credits and relations.
+- Package payment command: paid Payment + active Membership + idempotent GRANT transaction and visit balance.
 - Default application function role.
 
-Not in this app yet: product seed data, booking capacity Logic Functions, membership balance mutations, WF-02 SLA cron, WF-03 Telegram-from-CRM (outbound stays in poller).
+Not in this app yet: product seed data, booking capacity/visit deduction Logic Functions, refunds and balance corrections, WF-02 SLA cron, WF-03 Telegram-from-CRM (outbound stays in poller).
 
 Contracts: [docs/lead-actions.md](docs/lead-actions.md), [docs/lead-status.md](docs/lead-status.md).
 
 User guide: [Календарь занятий](docs/training-calendar-guide.ru.md).
+
+Operator instructions: [Оформление оплаты пакета](docs/instructions/confirm-package-payment.ru.md).
 
 ## Validate
 
