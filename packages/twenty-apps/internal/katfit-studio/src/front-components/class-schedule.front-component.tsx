@@ -144,10 +144,10 @@ const ClassSchedule = () => {
           classSessions: {
             __args: {
               filter: {
-                startsAt: {
-                  gte: firstDay.toISOString(),
-                  lt: lastDay.toISOString(),
-                },
+                and: [
+                  { startsAt: { gte: firstDay.toISOString() } },
+                  { startsAt: { lt: lastDay.toISOString() } },
+                ],
               },
               first: 200,
             },
