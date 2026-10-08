@@ -9,6 +9,8 @@ export const PRODUCT_NAME_FIELD_UNIVERSAL_IDENTIFIER =
   '4f5b0f59-81ae-420f-aee5-84a533ce5e84';
 export const PRODUCT_CODE_FIELD_UNIVERSAL_IDENTIFIER =
   '828fe2d8-f0aa-49ad-b5a0-24900cf753c4';
+export const PRODUCT_DURATION_MINUTES_FIELD_UNIVERSAL_IDENTIFIER =
+  'b28d3d08-7e4f-4a0c-8db7-57f7511b0bf5';
 
 export default defineObject({
   universalIdentifier: PRODUCT_OBJECT_UNIVERSAL_IDENTIFIER,
@@ -55,6 +57,14 @@ export default defineObject({
       label: 'Формат занятия',
       icon: 'IconYoga',
       options: [...SESSION_FORMAT_OPTIONS],
+    },
+    {
+      universalIdentifier: PRODUCT_DURATION_MINUTES_FIELD_UNIVERSAL_IDENTIFIER,
+      type: FieldType.NUMBER,
+      name: 'durationMinutes',
+      label: 'Длительность, минут',
+      icon: 'IconClock',
+      defaultValue: 60,
     },
     {
       universalIdentifier: '533e574b-dad6-422c-9fd0-805409205f1f',

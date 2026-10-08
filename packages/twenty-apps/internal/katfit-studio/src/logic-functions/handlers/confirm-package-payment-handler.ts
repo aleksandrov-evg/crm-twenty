@@ -6,6 +6,7 @@ import {
   type PackageProduct,
   validatePackagePayment,
 } from 'src/logic-functions/utils/package-payment';
+import { calculateLedgerBalance, type LedgerEntry } from 'src/logic-functions/utils/past-attendance';
 
 type RelatedRecord = { id: string } | null;
 
@@ -327,23 +328,33 @@ const createGrantTransaction = async (
 const activateMembershipBalance = async (
   client: CoreApiClient,
   membershipId: string,
-  visitsIncluded: number,
-): Promise<void> => {
+): Promise<number> => {
+  const transactions = (await client.query({
+    membershipTransactions: {
+      __args: { filter: { membershipId: { eq: membershipId } }, first: 1000 },
+      edges: { node: { id: true, transactionType: true, visitDelta: true, occurredAt: true } },
+    },
+  } as never)) as unknown as { membershipTransactions?: { edges?: Array<{ node: LedgerEntry }> } };
+  const entries = edgesToNodes(transactions.membershipTransactions);
+  if (entries.length === 1000) throw new Error('Журнал пакета слишком велик для безопасной сверки.');
+  const balance = calculateLedgerBalance(entries);
+  if (!balance.success) throw new Error('Журнал пакета требует проверки владельцем.');
   await client.mutation({
     updateStudioMembership: {
       __args: {
         id: membershipId,
         data: {
-          status: 'ACTIVE',
-          visitsGranted: visitsIncluded,
-          visitsReserved: 0,
-          visitsConsumed: 0,
-          visitsAvailable: visitsIncluded,
+          status: balance.available === 0 ? 'EXHAUSTED' : 'ACTIVE',
+          visitsGranted: balance.granted,
+          visitsReserved: balance.reserved,
+          visitsConsumed: balance.consumed,
+          visitsAvailable: balance.available,
         },
       },
       id: true,
     },
   } as never);
+  return balance.available;
 };
 
 const conflict = (
@@ -485,10 +496,9 @@ export const confirmPackagePayment = async (
     );
   }
 
-  await activateMembershipBalance(
+  const visitsAvailable = await activateMembershipBalance(
     client,
     membership.id,
-    product.visitsIncluded,
   );
 
   return {
@@ -497,6 +507,6 @@ export const confirmPackagePayment = async (
     paymentId: payment.id,
     membershipId: membership.id,
     transactionId: transaction.id,
-    visitsAvailable: product.visitsIncluded,
+    visitsAvailable,
   };
 };

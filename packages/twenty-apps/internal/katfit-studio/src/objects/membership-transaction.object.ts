@@ -28,5 +28,6 @@ export default defineObject({
     { universalIdentifier: '3ff66dc5-5cf4-4f95-8819-8a031a365200', type: FieldType.DATE_TIME, name: 'occurredAt', label: 'Время операции', icon: 'IconCalendarClock' },
     { universalIdentifier: 'b0d1983e-044a-4b73-bb1f-0c8b87c8afca', type: FieldType.TEXT, name: 'idempotencyKey', label: 'Ключ идемпотентности', icon: 'IconKey' },
     { universalIdentifier: '46c2b255-7b69-45d1-aa8c-6637374662bc', type: FieldType.TEXT, name: 'reason', label: 'Причина', icon: 'IconNote', isNullable: true },
+    { universalIdentifier: 'd9f6024d-93fc-4d80-9513-73ca92e61826', type: FieldType.NUMBER, name: 'consumptionSequence', label: 'Номер списания', icon: 'IconNumber', isNullable: true },
   ],
 });
