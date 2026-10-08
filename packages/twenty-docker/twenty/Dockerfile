@@ -31,6 +31,7 @@ COPY ./.yarn/patches /app/.yarn/patches
 COPY ./packages/twenty-emails/package.json /app/packages/twenty-emails/
 COPY ./packages/twenty-server/package.json /app/packages/twenty-server/
 COPY ./packages/twenty-server/patches /app/packages/twenty-server/patches
+COPY ./packages/twenty-oxlint-rules/package.json /app/packages/twenty-oxlint-rules/
 COPY ./packages/twenty-shared/package.json /app/packages/twenty-shared/
 COPY ./packages/twenty-client-sdk/package.json /app/packages/twenty-client-sdk/
 
