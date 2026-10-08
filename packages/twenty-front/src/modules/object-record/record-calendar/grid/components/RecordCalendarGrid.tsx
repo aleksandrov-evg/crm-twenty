@@ -7,8 +7,7 @@ import { recordCalendarSelectedDateComponentState } from '@/object-record/record
 import { recordIndexCalendarFieldMetadataIdComponentState } from '@/object-record/record-index/states/recordIndexCalendarFieldMetadataIdComponentState';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { styled } from '@linaria/react';
-import { isPlainDateInSameMonth } from 'twenty-shared/utils';
-import { FieldMetadataType } from 'twenty-shared/types';
+import { isDefined, isPlainDateInSameMonth } from 'twenty-shared/utils';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { ViewCalendarLayout } from '~/generated-metadata/graphql';
 
@@ -79,7 +78,7 @@ export const RecordCalendarGrid = ({
   const shouldRenderTimeGrid =
     (calendarLayout === ViewCalendarLayout.DAY ||
       calendarLayout === ViewCalendarLayout.WEEK) &&
-    calendarFieldMetadataItem?.type === FieldMetadataType.DATE_TIME;
+    isDefined(calendarFieldMetadataItem);
 
   return (
     <RecordCalendarDragDropContext>

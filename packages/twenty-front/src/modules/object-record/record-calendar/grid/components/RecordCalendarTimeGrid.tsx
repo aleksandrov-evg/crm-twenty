@@ -138,9 +138,9 @@ const RecordCalendarTimeGridCard = ({
   }
 
   try {
-    const startDateTime = Temporal.Instant.from(recordDateTime).toZonedDateTimeISO(
-      timeZone,
-    );
+    const startDateTime = Temporal.Instant.from(
+      recordDateTime,
+    ).toZonedDateTimeISO(timeZone);
 
     if (
       !isSamePlainDate(
@@ -168,7 +168,57 @@ const RecordCalendarTimeGridCard = ({
       </StyledCard>
     );
   } catch {
-    return null;
+    try {
+      const plainDateTime = Temporal.PlainDateTime.from(recordDateTime);
+
+      if (
+        !isSamePlainDate(
+          Temporal.PlainDate.from(calendarDay),
+          plainDateTime.toPlainDate(),
+        )
+      ) {
+        return null;
+      }
+
+      const minutesFromGridStart =
+        plainDateTime.hour * 60 +
+        plainDateTime.minute -
+        TIME_GRID_START_HOUR * 60;
+      const top = Math.max(
+        0,
+        (minutesFromGridStart / 60) * TIME_GRID_HOUR_HEIGHT,
+      );
+
+      return (
+        <StyledCard top={top}>
+          <RecordCalendarCardDraggableContainer
+            calendarDay={calendarDay}
+            recordId={recordId}
+            index={index}
+          />
+        </StyledCard>
+      );
+    } catch {
+      try {
+        const recordDay = Temporal.PlainDate.from(recordDateTime);
+
+        if (!isSamePlainDate(Temporal.PlainDate.from(calendarDay), recordDay)) {
+          return null;
+        }
+
+        return (
+          <StyledCard top={0}>
+            <RecordCalendarCardDraggableContainer
+              calendarDay={calendarDay}
+              recordId={recordId}
+              index={index}
+            />
+          </StyledCard>
+        );
+      } catch {
+        return null;
+      }
+    }
   }
 };
 
