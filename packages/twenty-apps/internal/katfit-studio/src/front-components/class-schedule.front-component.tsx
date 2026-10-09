@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useMemo, useState } from 'react';
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineFrontComponent } from 'twenty-sdk/define';
 import { enqueueSnackbar } from 'twenty-sdk/front-component';
@@ -30,6 +30,20 @@ type SessionForm = {
   startsAt: string;
   durationMinutes: string;
   capacity: string;
+};
+
+type Participant = {
+  id: string;
+  person: {
+    id: string;
+    name: { firstName: string | null; lastName: string | null } | null;
+  } | null;
+  status: string;
+};
+
+type PersonOption = {
+  id: string;
+  name: { firstName: string | null; lastName: string | null } | null;
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -144,6 +158,26 @@ const styles: Record<string, CSSProperties> = {
     padding: '6px 0',
   },
   formActions: { display: 'flex', gap: 8, justifyContent: 'flex-end' },
+  participants: {
+    borderTop: '1px solid var(--t-border-color-light)',
+    display: 'grid',
+    gap: 8,
+    paddingTop: 12,
+  },
+  participant: {
+    alignItems: 'center',
+    display: 'flex',
+    fontSize: 13,
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  smallButton: {
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--t-color-red)',
+    cursor: 'pointer',
+    padding: 2,
+  },
   error: { color: 'var(--t-color-red)', padding: 16 },
 };
 
@@ -216,6 +250,14 @@ const getSessionForm = (session: ClassSession): SessionForm => ({
   capacity: String(session.capacity),
 });
 
+const getPersonLabel = (person: PersonOption | Participant['person']): string => {
+  const name = `${person?.name?.firstName ?? ''} ${person?.name?.lastName ?? ''}`.trim();
+  return name || 'Без имени';
+};
+
+const isActiveParticipant = (participant: Participant): boolean =>
+  participant.status === 'BOOKED' || participant.status === 'ATTENDED';
+
 const getWeekDays = (selectedDate: Date, mode: 'day' | 'week'): Date[] =>
   mode === 'day'
     ? [startOfDay(selectedDate)]
@@ -230,6 +272,11 @@ const ClassSchedule = () => {
   const [sessionForm, setSessionForm] = useState<SessionForm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [reloadVersion, setReloadVersion] = useState(0);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [people, setPeople] = useState<PersonOption[]>([]);
+  const [personSearch, setPersonSearch] = useState('');
+  const [isParticipantsLoading, setIsParticipantsLoading] = useState(false);
+  const [participantVersion, setParticipantVersion] = useState(0);
   const days = useMemo(() => getWeekDays(selectedDate, mode), [mode, selectedDate]);
 
   useEffect(() => {
@@ -297,6 +344,137 @@ const ClassSchedule = () => {
     setSelectedDate(addDays(selectedDate, offset * (mode === 'day' ? 1 : 7)));
   };
 
+  const activeParticipants = participants.filter(isActiveParticipant);
+  const loadParticipants = useCallback(async (classSessionId: string) => {
+    setIsParticipantsLoading(true);
+    try {
+      const response = (await new CoreApiClient().query({
+        studioBookings: {
+          __args: { filter: { classSessionId: { eq: classSessionId } }, first: 100 },
+          edges: {
+            node: {
+              id: true,
+              status: true,
+              person: { id: true, name: { firstName: true, lastName: true } },
+            },
+          },
+        },
+        people: {
+          __args: { first: 100 },
+          edges: { node: { id: true, name: { firstName: true, lastName: true } } },
+        },
+      } as never)) as unknown as {
+        studioBookings?: { edges?: Array<{ node: Participant }> };
+        people?: { edges?: Array<{ node: PersonOption }> };
+      };
+      setParticipants(response.studioBookings?.edges?.map(({ node }) => node) ?? []);
+      setPeople(response.people?.edges?.map(({ node }) => node) ?? []);
+    } catch (loadError) {
+      await enqueueSnackbar({
+        message:
+          loadError instanceof Error
+            ? loadError.message
+            : 'Не удалось загрузить участников.',
+        variant: 'error',
+      });
+    } finally {
+      setIsParticipantsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (sessionForm?.id === null || sessionForm === null) {
+      setParticipants([]);
+      setPeople([]);
+      return;
+    }
+    void loadParticipants(sessionForm.id);
+  }, [loadParticipants, participantVersion, sessionForm?.id]);
+
+  const addParticipant = async (person: PersonOption) => {
+    if (sessionForm?.id === null || sessionForm === null) return;
+    if (activeParticipants.length >= Number(sessionForm.capacity)) {
+      await enqueueSnackbar({
+        message: 'Все места на занятии уже заняты.',
+        variant: 'error',
+      });
+      return;
+    }
+    if (activeParticipants.some((participant) => participant.person?.id === person.id)) {
+      await enqueueSnackbar({ message: 'Клиент уже добавлен.', variant: 'error' });
+      return;
+    }
+
+    try {
+      await new CoreApiClient().mutation({
+        createStudioBooking: {
+          __args: {
+            data: {
+              name: `Запись · ${getPersonLabel(person)}`,
+              bookingType: 'REGULAR',
+              status: 'BOOKED',
+              bookedAt: new Date().toISOString(),
+              consumesVisit: false,
+              personId: person.id,
+              classSessionId: sessionForm.id,
+            },
+          },
+          id: true,
+        },
+      } as never);
+      await new CoreApiClient().mutation({
+        updateClassSession: {
+          __args: {
+            id: sessionForm.id,
+            data: { bookedCount: activeParticipants.length + 1 },
+          },
+          id: true,
+        },
+      } as never);
+      setParticipantVersion((currentParticipantVersion) => currentParticipantVersion + 1);
+      setReloadVersion((currentReloadVersion) => currentReloadVersion + 1);
+      setPersonSearch('');
+    } catch (saveError) {
+      await enqueueSnackbar({
+        message:
+          saveError instanceof Error ? saveError.message : 'Не удалось добавить клиента.',
+        variant: 'error',
+      });
+    }
+  };
+
+  const removeParticipant = async (participant: Participant) => {
+    if (sessionForm?.id === null || sessionForm === null) return;
+    try {
+      await new CoreApiClient().mutation({
+        updateStudioBooking: {
+          __args: {
+            id: participant.id,
+            data: { status: 'CANCELLED_BY_STUDIO', cancelledAt: new Date().toISOString() },
+          },
+          id: true,
+        },
+      } as never);
+      await new CoreApiClient().mutation({
+        updateClassSession: {
+          __args: {
+            id: sessionForm.id,
+            data: { bookedCount: Math.max(0, activeParticipants.length - 1) },
+          },
+          id: true,
+        },
+      } as never);
+      setParticipantVersion((currentParticipantVersion) => currentParticipantVersion + 1);
+      setReloadVersion((currentReloadVersion) => currentReloadVersion + 1);
+    } catch (saveError) {
+      await enqueueSnackbar({
+        message:
+          saveError instanceof Error ? saveError.message : 'Не удалось убрать клиента.',
+        variant: 'error',
+      });
+    }
+  };
+
   const gridTemplateColumns =
     mode === 'week'
       ? '56px repeat(7, minmax(0, 1fr))'
@@ -328,6 +506,13 @@ const ClassSchedule = () => {
     if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || !Number.isInteger(durationMinutes) || durationMinutes < 1 || !Number.isInteger(capacity) || capacity < 1) {
       await enqueueSnackbar({
         message: 'Укажите корректные длительность и вместимость.',
+        variant: 'error',
+      });
+      return;
+    }
+    if (sessionForm.id !== null && activeParticipants.length > capacity) {
+      await enqueueSnackbar({
+        message: 'Вместимость не может быть меньше числа добавленных клиентов.',
         variant: 'error',
       });
       return;
@@ -483,6 +668,28 @@ const ClassSchedule = () => {
               Вместимость
               <input style={styles.input} type="number" min="1" step="1" value={sessionForm.capacity} onChange={(event) => setSessionForm({ ...sessionForm, capacity: event.target.value })} required />
             </label>
+            <div style={styles.participants}>
+              <strong>Участники · {activeParticipants.length}/{sessionForm.capacity || '—'}</strong>
+              {sessionForm.id === null ? (
+                <span>Сначала сохраните занятие, затем добавьте клиентов.</span>
+              ) : null}
+              {sessionForm.id !== null && isParticipantsLoading ? <span>Загрузка участников…</span> : null}
+              {sessionForm.id !== null && !isParticipantsLoading ? activeParticipants.map((participant) => (
+                <div key={participant.id} style={styles.participant}>
+                  <span>{getPersonLabel(participant.person)}</span>
+                  <button style={styles.smallButton} type="button" onClick={() => void removeParticipant(participant)}>Убрать</button>
+                </div>
+              )) : null}
+              {sessionForm.id !== null && !isParticipantsLoading && activeParticipants.length === 0 ? <span>Участников пока нет.</span> : null}
+              {sessionForm.id !== null && activeParticipants.length < Number(sessionForm.capacity) ? (
+                <>
+                  <input style={styles.input} placeholder="Найти клиента" value={personSearch} onChange={(event) => setPersonSearch(event.target.value)} />
+                  {personSearch.trim().length > 0 ? people.filter((person) => getPersonLabel(person).toLocaleLowerCase('ru-RU').includes(personSearch.trim().toLocaleLowerCase('ru-RU'))).filter((person) => !activeParticipants.some((participant) => participant.person?.id === person.id)).slice(0, 5).map((person) => (
+                    <button key={person.id} style={styles.button} type="button" onClick={() => void addParticipant(person)}>{getPersonLabel(person)}</button>
+                  )) : null}
+                </>
+              ) : null}
+            </div>
             <div style={styles.formActions}>
               <button style={styles.button} type="button" onClick={() => setSessionForm(null)} disabled={isSaving}>Отмена</button>
               <button style={styles.activeButton} type="submit" disabled={isSaving}>{isSaving ? 'Сохранение…' : 'Сохранить'}</button>
