@@ -519,6 +519,24 @@ const ClassSchedule = () => {
       });
       return;
     }
+    const hasScheduleConflict = sessions.some((session) => {
+      const sessionStartsAt = new Date(session.startsAt);
+      const sessionEndsAt = new Date(session.endsAt);
+
+      return (
+        session.id !== sessionForm.id &&
+        session.status !== 'CANCELLED_BY_STUDIO' &&
+        sessionStartsAt < endsAt &&
+        sessionEndsAt > startsAt
+      );
+    });
+    if (hasScheduleConflict) {
+      await enqueueSnackbar({
+        message: 'Это время уже занято другим занятием.',
+        variant: 'error',
+      });
+      return;
+    }
 
     const name = sessionForm.name.trim() || getSessionFormatLabel(sessionForm.sessionFormat);
     const data = {
