@@ -48,6 +48,7 @@ export default defineObject({
         { id: '3a24a78a-a54e-408c-a82a-2331064fb708', value: 'SINGLE', label: 'Разовое', position: 1, color: 'sky' },
         { id: 'b5bbb5e4-ddc0-4fb8-b495-f0661662d4d5', value: 'GROUP_PACKAGE', label: 'Пакет группы', position: 2, color: 'green' },
         { id: 'a19bdf46-3d04-4c4b-917e-3a623f52feec', value: 'PERSONAL', label: 'Персональное', position: 3, color: 'purple' },
+        { id: '660bde42-6206-4b38-b6cd-d6ff9ee849ae', value: 'SPLIT', label: 'Сплит', position: 4, color: 'violet' },
       ],
     },
     {
@@ -65,6 +66,14 @@ export default defineObject({
       label: 'Длительность, минут',
       icon: 'IconClock',
       defaultValue: 55,
+    },
+    {
+      universalIdentifier: '1dd53e14-f5d9-4672-972a-75edc9e8d42f',
+      type: FieldType.NUMBER,
+      name: 'defaultSessionCapacity',
+      label: 'Вместимость слота по умолчанию',
+      icon: 'IconArmchair',
+      defaultValue: 4,
     },
     {
       universalIdentifier: '533e574b-dad6-422c-9fd0-805409205f1f',

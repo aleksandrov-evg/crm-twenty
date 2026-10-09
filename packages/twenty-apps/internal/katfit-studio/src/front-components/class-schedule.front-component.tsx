@@ -1,5 +1,6 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from 'react';
 import { CoreApiClient } from 'twenty-client-sdk/core';
+import { RestApiClient } from 'twenty-client-sdk/rest';
 import { defineFrontComponent } from 'twenty-sdk/define';
 import { enqueueSnackbar } from 'twenty-sdk/front-component';
 import { escapeForIlike } from 'twenty-shared/utils';
@@ -26,6 +27,7 @@ type ClassSession = {
 
 type SessionForm = {
   id: string | null;
+  productId: string;
   name: string;
   sessionFormat: string;
   startsAt: string;
@@ -33,8 +35,45 @@ type SessionForm = {
   capacity: string;
 };
 
+type ProductOption = {
+  id: string;
+  name: string;
+  sessionFormat: string;
+  durationMinutes: number;
+  defaultSessionCapacity: number;
+};
+
+type SplitPairOption = {
+  id: string;
+  name: string;
+  firstPerson: {
+    name: { firstName: string | null; lastName: string | null } | null;
+  } | null;
+  secondPerson: {
+    name: { firstName: string | null; lastName: string | null } | null;
+  } | null;
+  studioMemberships?: {
+    edges?: Array<{
+      node: { id: string; status: string; visitsAvailable: number };
+    }>;
+  } | null;
+};
+
+const getSplitPairLabel = (pair: SplitPairOption): string => {
+  const getName = (
+    person: SplitPairOption['firstPerson'],
+  ): string =>
+    `${person?.name?.firstName ?? ''} ${person?.name?.lastName ?? ''}`.trim() ||
+    'Клиент не указан';
+
+  return `${getName(pair.firstPerson)} — ${getName(pair.secondPerson)}`;
+};
+
 type Participant = {
   id: string;
+  bookingType: string;
+  membership: { id: string } | null;
+  pair: { id: string } | null;
   person: {
     id: string;
     name: { firstName: string | null; lastName: string | null } | null;
@@ -167,6 +206,7 @@ const styles: Record<string, CSSProperties> = {
     background: 'var(--t-background-primary)',
     border: '1px solid var(--t-border-color-medium)',
     borderRadius: 8,
+    boxSizing: 'border-box',
     boxShadow: '0 12px 32px rgba(0, 0, 0, 0.35)',
     display: 'grid',
     gap: 12,
@@ -179,9 +219,11 @@ const styles: Record<string, CSSProperties> = {
     background: 'var(--t-background-secondary)',
     border: '1px solid var(--t-border-color-medium)',
     borderRadius: 4,
+    boxSizing: 'border-box',
     color: 'var(--t-font-color-primary)',
     minHeight: 32,
     padding: '4px 8px',
+    width: '100%',
   },
   readOnlyValue: {
     color: 'var(--t-font-color-secondary)',
@@ -223,6 +265,7 @@ const styles: Record<string, CSSProperties> = {
     background: 'var(--t-background-primary)',
     border: '1px solid var(--t-border-color-medium)',
     borderRadius: 8,
+    boxSizing: 'border-box',
     boxShadow: '0 12px 32px rgba(0, 0, 0, 0.35)',
     display: 'grid',
     gap: 12,
@@ -246,6 +289,14 @@ const styles: Record<string, CSSProperties> = {
   membershipUnavailable: { color: 'var(--t-color-red)', fontSize: 12 },
   disabledSearchResult: { cursor: 'not-allowed', opacity: 0.65 },
   error: { color: 'var(--t-color-red)', padding: 16 },
+  success: {
+    background: 'var(--t-background-secondary)',
+    border: '1px solid var(--t-color-green)',
+    borderRadius: 4,
+    color: 'var(--t-color-green)',
+    margin: '0 12px',
+    padding: 10,
+  },
 };
 
 const startOfWeek = (date: Date): Date => {
@@ -297,6 +348,7 @@ const getNewSessionForm = (startsAt: Date): SessionForm => {
 
   return {
     id: null,
+    productId: '',
     name: '',
     sessionFormat: SESSION_FORMAT_OPTIONS[0].value,
     startsAt: toDateTimeLocalValue(startsAt),
@@ -307,6 +359,7 @@ const getNewSessionForm = (startsAt: Date): SessionForm => {
 
 const getSessionForm = (session: ClassSession): SessionForm => ({
   id: session.id,
+  productId: '',
   name: session.name,
   sessionFormat: session.sessionFormat,
   startsAt: toDateTimeLocalValue(new Date(session.startsAt)),
@@ -365,12 +418,21 @@ const ClassSchedule = () => {
   const [mode, setMode] = useState<'day' | 'week'>('day');
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [sessions, setSessions] = useState<ClassSession[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [splitPairs, setSplitPairs] = useState<SplitPairOption[]>([]);
+  const [selectedSplitPairId, setSelectedSplitPairId] = useState('');
+  const [isSplitPairLoading, setIsSplitPairLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isCancelConfirmationOpen, setIsCancelConfirmationOpen] = useState(false);
   const [sessionForm, setSessionForm] = useState<SessionForm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [reloadVersion, setReloadVersion] = useState(0);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [pendingParticipants, setPendingParticipants] = useState<PersonOption[]>(
+    [],
+  );
   const [isPersonPickerOpen, setIsPersonPickerOpen] = useState(false);
   const [personSearch, setPersonSearch] = useState('');
   const [personResults, setPersonResults] = useState<PersonOption[]>([]);
@@ -412,12 +474,22 @@ const ClassSchedule = () => {
               },
             },
           },
+          studioProducts: {
+            __args: { filter: { isActive: { eq: true } }, first: 100 },
+            edges: { node: { id: true, name: true, sessionFormat: true, durationMinutes: true, defaultSessionCapacity: true } },
+          },
         } as never)) as unknown as {
           classSessions?: { edges?: Array<{ node: ClassSession }> };
+          studioProducts?: { edges?: Array<{ node: ProductOption }> };
         };
 
         if (isMounted) {
-          setSessions(response.classSessions?.edges?.map(({ node }) => node) ?? []);
+          setSessions(
+            response.classSessions?.edges
+              ?.map(({ node }) => node)
+              .filter((session) => session.status !== 'CANCELLED_BY_STUDIO') ?? [],
+          );
+          setProducts(response.studioProducts?.edges?.map(({ node }) => node) ?? []);
         }
       } catch (loadError) {
         if (isMounted) {
@@ -445,6 +517,20 @@ const ClassSchedule = () => {
   };
 
   const activeParticipants = participants.filter(isActiveParticipant);
+  const isFutureSession =
+    sessionForm !== null && new Date(sessionForm.startsAt).getTime() > Date.now();
+  const splitBooking = activeParticipants.find(
+    (participant) => participant.bookingType === 'SPLIT',
+  );
+  const selectedSplitPair = splitPairs.find(
+    (pair) => pair.id === selectedSplitPairId,
+  );
+  const selectedSplitMembership = selectedSplitPair?.studioMemberships?.edges
+    ?.map(({ node }) => node)
+    .find(
+      (membership) =>
+        membership.status === 'ACTIVE' && membership.visitsAvailable > 0,
+    );
   const loadParticipants = useCallback(async (classSessionId: string) => {
     setIsParticipantsLoading(true);
     try {
@@ -454,7 +540,10 @@ const ClassSchedule = () => {
           edges: {
             node: {
               id: true,
+              bookingType: true,
               status: true,
+              membership: { id: true },
+              pair: { id: true },
               person: { id: true, name: { firstName: true, lastName: true } },
             },
           },
@@ -483,6 +572,61 @@ const ClassSchedule = () => {
     }
     void loadParticipants(sessionForm.id);
   }, [loadParticipants, participantVersion, sessionForm?.id]);
+
+  useEffect(() => {
+    if (
+      sessionForm === null || sessionForm.sessionFormat !== 'SPLIT_EQUIPMENT'
+    ) {
+      setSplitPairs([]);
+      setSelectedSplitPairId('');
+      return;
+    }
+    void (async () => {
+      setIsSplitPairLoading(true);
+      try {
+        const response = (await new CoreApiClient().query({
+          studioPairs: {
+            __args: { filter: { status: { eq: 'ACTIVE' } }, first: 100 },
+            edges: {
+              node: {
+                id: true,
+                name: true,
+                firstPerson: { name: { firstName: true, lastName: true } },
+                secondPerson: { name: { firstName: true, lastName: true } },
+                studioMemberships: {
+                  __args: { first: 100 },
+                  edges: {
+                    node: { id: true, status: true, visitsAvailable: true },
+                  },
+                },
+              },
+            },
+          },
+        } as never)) as unknown as {
+          studioPairs?: { edges?: Array<{ node: SplitPairOption }> };
+        };
+        const loadedPairs =
+          response.studioPairs?.edges
+            ?.map(({ node }) => node)
+            .filter((pair) =>
+              pair.studioMemberships?.edges?.some(
+                ({ node: membership }) =>
+                  membership.status === 'ACTIVE' &&
+                  membership.visitsAvailable > 0,
+              ),
+            ) ?? [];
+        setSplitPairs(loadedPairs);
+        setSelectedSplitPairId('');
+      } catch {
+        void enqueueSnackbar({
+          message: 'Не удалось загрузить доступные пары.',
+          variant: 'error',
+        });
+      } finally {
+        setIsSplitPairLoading(false);
+      }
+    })();
+  }, [participantVersion, sessionForm?.id, sessionForm?.sessionFormat]);
 
   const searchPeople = useCallback(async (searchTerm: string) => {
     if (searchTerm.trim().length < 2) {
@@ -537,7 +681,7 @@ const ClassSchedule = () => {
       };
       setPersonResults(response.people?.edges?.map(({ node }) => node) ?? []);
     } catch (searchError) {
-      await enqueueSnackbar({
+      void enqueueSnackbar({
         message:
           searchError instanceof Error
             ? searchError.message
@@ -559,29 +703,16 @@ const ClassSchedule = () => {
     return () => window.clearTimeout(searchTimeout);
   }, [isPersonPickerOpen, personSearch, searchPeople]);
 
-  const addParticipant = async (person: PersonOption): Promise<boolean> => {
-    if (sessionForm?.id === null || sessionForm === null) return false;
-    if (activeParticipants.length >= Number(sessionForm.capacity)) {
-      await enqueueSnackbar({
-        message: 'Все места на занятии уже заняты.',
-        variant: 'error',
-      });
-      return false;
-    }
-    if (activeParticipants.some((participant) => participant.person?.id === person.id)) {
-      await enqueueSnackbar({ message: 'Клиент уже добавлен.', variant: 'error' });
-      return false;
-    }
-
+  const createRegularBooking = async (
+    person: PersonOption,
+    classSessionId: string,
+    bookedCount: number,
+  ): Promise<boolean> => {
+    if (sessionForm === null) return false;
     const membership = getMatchingMembership(person, sessionForm);
     if (membership === null || membership.product === null) {
-      await enqueueSnackbar({
-        message: `У клиента нет действующего пакета на формат «${getSessionFormatLabel(sessionForm.sessionFormat)}».`,
-        variant: 'error',
-      });
       return false;
     }
-
     try {
       await new CoreApiClient().mutation({
         createStudioBooking: {
@@ -595,7 +726,7 @@ const ClassSchedule = () => {
               personId: person.id,
               membershipId: membership.id,
               productId: membership.product.id,
-              classSessionId: sessionForm.id,
+              classSessionId,
             },
           },
           id: true,
@@ -603,19 +734,13 @@ const ClassSchedule = () => {
       } as never);
       await new CoreApiClient().mutation({
         updateClassSession: {
-          __args: {
-            id: sessionForm.id,
-            data: { bookedCount: activeParticipants.length + 1 },
-          },
+          __args: { id: classSessionId, data: { bookedCount } },
           id: true,
         },
       } as never);
-      setParticipantVersion((currentParticipantVersion) => currentParticipantVersion + 1);
-      setReloadVersion((currentReloadVersion) => currentReloadVersion + 1);
-      setPersonSearch('');
       return true;
     } catch (saveError) {
-      await enqueueSnackbar({
+      void enqueueSnackbar({
         message:
           saveError instanceof Error ? saveError.message : 'Не удалось добавить клиента.',
         variant: 'error',
@@ -624,35 +749,260 @@ const ClassSchedule = () => {
     }
   };
 
-  const removeParticipant = async (participant: Participant) => {
-    if (sessionForm?.id === null || sessionForm === null) return;
+  const addParticipant = async (person: PersonOption): Promise<boolean> => {
+    if (sessionForm === null) return false;
+    const currentParticipantCount =
+      sessionForm.id === null
+        ? pendingParticipants.length
+        : activeParticipants.length;
+    if (currentParticipantCount >= Number(sessionForm.capacity)) {
+      await enqueueSnackbar({
+        message: 'Все места на занятии уже заняты.',
+        variant: 'error',
+      });
+      return false;
+    }
+    if (
+      activeParticipants.some((participant) => participant.person?.id === person.id) ||
+      pendingParticipants.some((pendingParticipant) => pendingParticipant.id === person.id)
+    ) {
+      await enqueueSnackbar({ message: 'Клиент уже добавлен.', variant: 'error' });
+      return false;
+    }
+
+    const membership = getMatchingMembership(person, sessionForm);
+    if (membership === null || membership.product === null) {
+      await enqueueSnackbar({
+        message: `У клиента нет действующего пакета на формат «${getSessionFormatLabel(sessionForm.sessionFormat)}».`,
+        variant: 'error',
+      });
+      return false;
+    }
+
+    if (sessionForm.id === null) {
+      setPendingParticipants((currentParticipants) => [
+        ...currentParticipants,
+        person,
+      ]);
+      setPersonSearch('');
+      return true;
+    }
+
+    const wasAdded = await createRegularBooking(
+      person,
+      sessionForm.id,
+      activeParticipants.length + 1,
+    );
+    if (wasAdded) {
+      setParticipantVersion((currentParticipantVersion) => currentParticipantVersion + 1);
+      setReloadVersion((currentReloadVersion) => currentReloadVersion + 1);
+      setPersonSearch('');
+    }
+    return wasAdded;
+  };
+
+  const createSplitBooking = async (
+    classSessionId: string,
+  ): Promise<boolean> => {
+    if (selectedSplitPair === undefined || selectedSplitMembership === undefined) {
+      return false;
+    }
     try {
-      await new CoreApiClient().mutation({
-        updateStudioBooking: {
-          __args: {
-            id: participant.id,
-            data: { status: 'CANCELLED_BY_STUDIO', cancelledAt: new Date().toISOString() },
+      const response = await new RestApiClient().post<{
+        success: boolean;
+        message?: string;
+      }>('/s/studio/split-bookings/create', {
+        pairId: selectedSplitPair.id,
+        membershipId: selectedSplitMembership.id,
+        classSessionId,
+        idempotencyKey: `schedule-split:${selectedSplitPair.id}:${classSessionId}`,
+      });
+      if (!response.success) {
+        void enqueueSnackbar({
+          message: response.message ?? 'Не удалось добавить сплит.',
+          variant: 'error',
+        });
+        return false;
+      }
+      setParticipantVersion((version) => version + 1);
+      setReloadVersion((version) => version + 1);
+      return true;
+    } catch (error) {
+      await enqueueSnackbar({
+        message:
+          error instanceof Error ? error.message : 'Не удалось добавить сплит.',
+        variant: 'error',
+      });
+      return false;
+    }
+  };
+
+  const cancelSplitBooking = async (): Promise<boolean> => {
+    if (
+      sessionForm?.id === null ||
+      sessionForm === null ||
+      splitBooking?.pair === null ||
+      splitBooking?.pair === undefined ||
+      splitBooking.membership === null
+    ) {
+      return false;
+    }
+    setIsSaving(true);
+    try {
+      const cancellationKey = `schedule-studio-cancel:${splitBooking.pair.id}:${sessionForm.id}`;
+      const client = new CoreApiClient();
+      const result = (await client.query({
+        studioMemberships: {
+          __args: { filter: { id: { eq: splitBooking.membership.id } }, first: 1 },
+          edges: {
+            node: {
+              id: true,
+              visitsAvailable: true,
+              visitsReserved: true,
+            },
           },
-          id: true,
         },
-      } as never);
+        membershipTransactions: {
+          __args: { filter: { idempotencyKey: { eq: cancellationKey } }, first: 1 },
+          edges: { node: { id: true } },
+        },
+      } as never)) as unknown as {
+        studioMemberships?: {
+          edges?: Array<{
+            node: {
+              id: string;
+              visitsAvailable: number;
+              visitsReserved: number;
+            };
+          }>;
+        };
+        membershipTransactions?: { edges?: Array<{ node: { id: string } }> };
+      };
+      const membership = result.studioMemberships?.edges?.[0]?.node;
+      if (membership === undefined) {
+        throw new Error('Общий сплит-блок не найден.');
+      }
+      if (result.membershipTransactions?.edges?.[0] === undefined) {
+        for (const participant of activeParticipants) {
+          await client.mutation({
+            updateStudioBooking: {
+              __args: {
+                id: participant.id,
+                data: {
+                  status: 'CANCELLED_BY_STUDIO',
+                  cancelledAt: new Date().toISOString(),
+                  consumesVisit: false,
+                },
+              },
+              id: true,
+            },
+          } as never);
+        }
+        await client.mutation({
+          createMembershipTransaction: {
+            __args: {
+              data: {
+                name: 'Освобождение резерва · отмена занятия',
+                transactionType: 'RELEASE',
+                visitDelta: 1,
+                daysDelta: 0,
+                occurredAt: new Date().toISOString(),
+                idempotencyKey: cancellationKey,
+                reason: 'Отмена занятия студией',
+                membershipId: membership.id,
+                bookingId: splitBooking.id,
+              },
+            },
+            id: true,
+          },
+        } as never);
+        await client.mutation({
+          updateStudioMembership: {
+            __args: {
+              id: membership.id,
+              data: {
+                visitsAvailable: membership.visitsAvailable + 1,
+                visitsReserved: Math.max(0, membership.visitsReserved - 1),
+              },
+            },
+            id: true,
+          },
+        } as never);
+      }
+      setParticipantVersion((version) => version + 1);
+      setReloadVersion((version) => version + 1);
+      void enqueueSnackbar({
+        message: 'Запись пары отменена, резерв обработан по правилам отмены.',
+        variant: 'success',
+      });
+      return true;
+    } catch (error) {
+      void enqueueSnackbar({
+        message:
+          error instanceof Error ? error.message : 'Не удалось отменить сплит.',
+        variant: 'error',
+      });
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const cancelSession = async () => {
+    if (sessionForm?.id === null || sessionForm === null || !isFutureSession) {
+      return;
+    }
+    setSuccessMessage('Отменяем занятие…');
+    setIsSaving(true);
+    try {
+      if (splitBooking !== undefined) {
+        const isSplitCancelled = await cancelSplitBooking();
+        if (!isSplitCancelled) {
+          return;
+        }
+      } else {
+        for (const participant of activeParticipants) {
+          await new CoreApiClient().mutation({
+            updateStudioBooking: {
+              __args: {
+                id: participant.id,
+                data: {
+                  status: 'CANCELLED_BY_STUDIO',
+                  cancelledAt: new Date().toISOString(),
+                },
+              },
+              id: true,
+            },
+          } as never);
+        }
+      }
       await new CoreApiClient().mutation({
         updateClassSession: {
           __args: {
             id: sessionForm.id,
-            data: { bookedCount: Math.max(0, activeParticipants.length - 1) },
+            data: { status: 'CANCELLED_BY_STUDIO', bookedCount: 0 },
           },
           id: true,
         },
       } as never);
-      setParticipantVersion((currentParticipantVersion) => currentParticipantVersion + 1);
-      setReloadVersion((currentReloadVersion) => currentReloadVersion + 1);
-    } catch (saveError) {
-      await enqueueSnackbar({
-        message:
-          saveError instanceof Error ? saveError.message : 'Не удалось убрать клиента.',
+      setSessionForm(null);
+      setParticipantVersion((version) => version + 1);
+      setReloadVersion((version) => version + 1);
+      setSuccessMessage('Занятие отменено и скрыто из расписания.');
+      void enqueueSnackbar({
+        message: 'Занятие отменено и скрыто из расписания.',
+        variant: 'success',
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Не удалось отменить занятие.';
+      setSuccessMessage(`Ошибка: ${message}`);
+      void enqueueSnackbar({
+        message,
         variant: 'error',
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -665,6 +1015,7 @@ const ClassSchedule = () => {
   const openNewSessionForm = (day: Date, clickedHour: number) => {
     const startsAt = new Date(day);
     startsAt.setHours(clickedHour, 0, 0, 0);
+    setPendingParticipants([]);
     setSessionForm(getNewSessionForm(startsAt));
   };
 
@@ -683,9 +1034,17 @@ const ClassSchedule = () => {
       });
       return;
     }
-    if (sessionForm.id !== null && activeParticipants.length > capacity) {
+    const shouldAssignSplit =
+      sessionForm.sessionFormat === 'SPLIT_EQUIPMENT' &&
+      selectedSplitPair !== undefined;
+    const currentParticipantCount =
+      sessionForm.id === null
+        ? pendingParticipants.length
+        : activeParticipants.length;
+    const requiredCapacity = currentParticipantCount + (shouldAssignSplit ? 2 : 0);
+    if (requiredCapacity > capacity) {
       await enqueueSnackbar({
-        message: 'Вместимость не может быть меньше числа добавленных клиентов.',
+        message: 'Вместимость не может быть меньше числа добавляемых клиентов.',
         variant: 'error',
       });
       return;
@@ -728,7 +1087,26 @@ const ClassSchedule = () => {
             id: true,
           },
         } as never)) as unknown as { createClassSession: { id: string } };
-        setSessionForm({ ...sessionForm, id: response.createClassSession.id });
+        const classSessionId = response.createClassSession.id;
+        if (shouldAssignSplit) {
+          const isSplitAdded = await createSplitBooking(classSessionId);
+          if (!isSplitAdded) {
+            return;
+          }
+        } else {
+          for (const [index, participant] of pendingParticipants.entries()) {
+            const wasAdded = await createRegularBooking(
+              participant,
+              classSessionId,
+              index + 1,
+            );
+            if (!wasAdded) {
+              return;
+            }
+          }
+        }
+        setPendingParticipants([]);
+        setSessionForm(null);
       } else {
         await client.mutation({
           updateClassSession: {
@@ -736,14 +1114,24 @@ const ClassSchedule = () => {
             id: true,
           },
         } as never);
+        if (shouldAssignSplit) {
+          const isSplitAdded = await createSplitBooking(sessionForm.id);
+          if (!isSplitAdded) {
+            return;
+          }
+        }
         setSessionForm(null);
       }
       setReloadVersion((currentReloadVersion) => currentReloadVersion + 1);
       await enqueueSnackbar({
         message:
           sessionForm.id === null
-            ? 'Занятие создано. Теперь можно добавить клиентов.'
-            : 'Занятие обновлено.',
+            ? shouldAssignSplit
+              ? 'Занятие создано, сплит назначен.'
+              : 'Занятие создано, клиенты назначены.'
+            : shouldAssignSplit
+              ? 'Занятие сохранено, сплит назначен.'
+              : 'Занятие обновлено.',
         variant: 'success',
       });
     } catch (saveError) {
@@ -838,6 +1226,11 @@ const ClassSchedule = () => {
         </div>
         {isLoading ? <div style={{ padding: 12 }}>Загрузка расписания…</div> : null}
       </div>
+      {successMessage !== null ? (
+        <div role="status" style={styles.success}>
+          {successMessage}
+        </div>
+      ) : null}
       {sessionForm !== null ? (
         <div style={styles.formBackdrop}>
           <form style={styles.form} onSubmit={(event) => void saveSession(event)}>
@@ -846,9 +1239,56 @@ const ClassSchedule = () => {
               Название
               <input style={styles.input} value={sessionForm.name} onChange={(event) => setSessionForm({ ...sessionForm, name: event.target.value })} />
             </label>
+            {sessionForm.id === null ? (
+              <label style={styles.formLabel}>
+                Продукт-источник
+                <select
+                  style={styles.input}
+                  value={sessionForm.productId}
+                  onChange={(event) => {
+                    const product = products.find((item) => item.id === event.target.value);
+                    setSessionForm({
+                      ...sessionForm,
+                      productId: event.target.value,
+                      name: sessionForm.name || product?.name || '',
+                      sessionFormat: product?.sessionFormat || sessionForm.sessionFormat,
+                      durationMinutes: String(product?.durationMinutes || sessionForm.durationMinutes),
+                      capacity: String(product?.defaultSessionCapacity || sessionForm.capacity),
+                    });
+                  }}
+                >
+                  <option value="">Настроить вручную</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label style={styles.formLabel}>
               Формат
-              <select style={styles.input} value={sessionForm.sessionFormat} onChange={(event) => setSessionForm({ ...sessionForm, sessionFormat: event.target.value })}>
+              <select
+                style={styles.input}
+                value={sessionForm.sessionFormat}
+                onChange={(event) => {
+                  const sessionFormat = event.target.value;
+                  const product = products.find(
+                    (item) => item.sessionFormat === sessionFormat,
+                  );
+                  setSessionForm({
+                    ...sessionForm,
+                    productId: product?.id ?? '',
+                    sessionFormat,
+                    durationMinutes: String(
+                      product?.durationMinutes ?? sessionForm.durationMinutes,
+                    ),
+                    capacity: String(
+                      product?.defaultSessionCapacity ?? sessionForm.capacity,
+                    ),
+                  });
+                }}
+              >
                 {SESSION_FORMAT_OPTIONS.map((sessionFormatOption) => (
                   <option key={sessionFormatOption.value} value={sessionFormatOption.value}>{sessionFormatOption.label}</option>
                 ))}
@@ -880,23 +1320,139 @@ const ClassSchedule = () => {
               <input style={styles.input} type="number" min="1" step="1" value={sessionForm.capacity} onChange={(event) => setSessionForm({ ...sessionForm, capacity: event.target.value })} required />
             </label>
             <div style={styles.participants}>
-              <strong>Участники · {activeParticipants.length}/{sessionForm.capacity || '—'}</strong>
-              {sessionForm.id === null ? (
-                <span>Сначала сохраните занятие, затем добавьте клиентов.</span>
-              ) : null}
+              <strong>
+                Участники ·{' '}
+                {sessionForm.id === null
+                  ? pendingParticipants.length
+                  : activeParticipants.length}
+                /{sessionForm.capacity || '—'}
+              </strong>
+              {sessionForm.id === null
+                ? pendingParticipants.map((participant) => (
+                    <div key={participant.id} style={styles.participant}>
+                      <span>{getPersonLabel(participant)}</span>
+                      <button
+                        style={styles.smallButton}
+                        type="button"
+                        onClick={() =>
+                          setPendingParticipants((currentParticipants) =>
+                            currentParticipants.filter(
+                              (currentParticipant) =>
+                                currentParticipant.id !== participant.id,
+                            ),
+                          )
+                        }
+                      >
+                        Убрать
+                      </button>
+                    </div>
+                  ))
+                : null}
               {sessionForm.id !== null && isParticipantsLoading ? <span>Загрузка участников…</span> : null}
               {sessionForm.id !== null && !isParticipantsLoading ? activeParticipants.map((participant) => (
                 <div key={participant.id} style={styles.participant}>
                   <span>{getPersonLabel(participant.person)}</span>
-                  <button style={styles.smallButton} type="button" onClick={() => void removeParticipant(participant)}>Убрать</button>
                 </div>
               )) : null}
               {sessionForm.id !== null && !isParticipantsLoading && activeParticipants.length === 0 ? <span>Участников пока нет.</span> : null}
-              {sessionForm.id !== null && activeParticipants.length < Number(sessionForm.capacity) ? (
+              {sessionForm.sessionFormat === 'SPLIT_EQUIPMENT' ? (
+                <>
+                  <strong>Доступные сплиты</strong>
+                  {isSplitPairLoading ? <span>Загрузка пар…</span> : null}
+                  {!isSplitPairLoading && splitPairs.length === 0 ? (
+                    <span>Нет пар с активным сплит-блоком и доступным остатком.</span>
+                  ) : null}
+                  {splitPairs.length > 0 ? (
+                    <>
+                      <select
+                        style={styles.input}
+                        value={selectedSplitPairId}
+                        onChange={(event) =>
+                          setSelectedSplitPairId(event.target.value)
+                        }
+                        disabled={isSplitPairLoading}
+                      >
+                        <option value="">Выберите пару для записи</option>
+                        {splitPairs.map((pair) => {
+                          const membership = pair.studioMemberships?.edges
+                            ?.map(({ node }) => node)
+                            .find(
+                              (item) =>
+                                item.status === 'ACTIVE' &&
+                                item.visitsAvailable > 0,
+                            );
+                          return (
+                            <option key={pair.id} value={pair.id}>
+                              {getSplitPairLabel(pair)} ·{' '}
+                              {membership?.visitsAvailable ?? 0} доступно
+                            </option>
+                          );
+                        })}
+                      </select>
+                      {selectedSplitPair !== undefined && selectedSplitMembership === undefined ? (
+                        <span>
+                          У выбранной пары нет активного общего блока с доступным
+                          остатком.
+                        </span>
+                      ) : null}
+                    </>
+                  ) : null}
+                </>
+              ) : null}
+              {sessionForm.sessionFormat !== 'SPLIT_EQUIPMENT' && (sessionForm.id === null ? pendingParticipants.length : activeParticipants.length) < Number(sessionForm.capacity) ? (
                 <button style={styles.button} type="button" onClick={() => setIsPersonPickerOpen(true)}>Добавить клиента</button>
               ) : null}
             </div>
+            {successMessage !== null ? (
+              <span
+                role="status"
+                style={{
+                  color: successMessage.startsWith('Ошибка:')
+                    ? 'var(--t-color-red)'
+                    : 'var(--t-color-green)',
+                }}
+              >
+                {successMessage}
+              </span>
+            ) : null}
+            {isCancelConfirmationOpen ? (
+              <div style={styles.participants}>
+                <strong>Отменить занятие?</strong>
+                <span>
+                  Все записи будут отменены, а слот исчезнет из расписания.
+                </span>
+                <div style={styles.formActions}>
+                  <button
+                    style={styles.button}
+                    type="button"
+                    onClick={() => setIsCancelConfirmationOpen(false)}
+                  >
+                    Не отменять
+                  </button>
+                  <button
+                    style={styles.smallButton}
+                    type="button"
+                    onClick={() => {
+                      setIsCancelConfirmationOpen(false);
+                      void cancelSession();
+                    }}
+                  >
+                    Да, отменить
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <div style={styles.formActions}>
+              {sessionForm.id !== null && isFutureSession ? (
+                <button
+                  style={styles.smallButton}
+                  type="button"
+                  disabled={isSaving}
+                  onClick={() => setIsCancelConfirmationOpen(true)}
+                >
+                  {isSaving ? 'Отмена…' : 'Отменить занятие'}
+                </button>
+              ) : null}
               <button style={styles.button} type="button" onClick={() => setSessionForm(null)} disabled={isSaving}>Отмена</button>
               <button style={styles.activeButton} type="submit" disabled={isSaving}>{isSaving ? 'Сохранение…' : sessionForm.id === null ? 'Создать занятие' : 'Сохранить'}</button>
             </div>
@@ -922,6 +1478,9 @@ const ClassSchedule = () => {
                     (person) =>
                       !activeParticipants.some(
                         (participant) => participant.person?.id === person.id,
+                      ) &&
+                      !pendingParticipants.some(
+                        (pendingParticipant) => pendingParticipant.id === person.id,
                       ),
                   )
                   .map((person) => {

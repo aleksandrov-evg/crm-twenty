@@ -29,6 +29,7 @@ Apply to a workspace (`twenty plan` / `apply`) and enable `CRM_SYNC_ENABLED` on 
 - Opportunity pipeline fields (stage, SLA timestamps, lead/UTM snapshots, lost reason).
 - WF-01 ingest + **LeadAction API** (`studio-lead-actions`) + **LeadStatus API** (`studio-lead-status`) for Telegram ops-bot.
 - Products, groups, sessions, bookings, memberships, payments, make-up credits and relations.
+- Pair records and the relations required for a shared split block and two client bookings.
 - Five active base products: group single visit, group packages of 4/8 visits,
   and personal single visit/package of 8 visits.
 - Package payment command: paid Payment + active Membership + idempotent GRANT transaction and visit balance.
@@ -37,13 +38,18 @@ Apply to a workspace (`twenty plan` / `apply`) and enable `CRM_SYNC_ENABLED` on 
 The attendance command resumes an interrupted operation when called with the same key. The SDK does not provide a transaction spanning CRM records: a failed intermediate mutation may leave a session or booking until retry completes it. The unique consumption sequence prevents two concurrent commands from consuming the same visit, but this flow still needs a transactional server-side write path before it can guarantee all-or-nothing behavior.
 - Default application function role.
 
-Not in this app yet: future booking reservation/capacity Logic Functions, refunds and balance corrections, WF-02 SLA cron, WF-03 Telegram-from-CRM (outbound stays in poller).
+Not in this app yet: refunds and balance corrections, WF-02 SLA cron, WF-03 Telegram-from-CRM (outbound stays in poller), and transactional server-side writes for concurrent booking safety.
+
+Split contract: [docs/split-implementation-brief.ru.md](docs/split-implementation-brief.ru.md). The Pair data model, split sale, future booking, attendance and cancellation commands are available. Review the generated plan and run integration tests with a workspace database before production use.
 
 Contracts: [docs/lead-actions.md](docs/lead-actions.md), [docs/lead-status.md](docs/lead-status.md).
 
 User guide: [Календарь занятий](docs/training-calendar-guide.ru.md).
 
 Operator instructions: [Оформление оплаты пакета](docs/instructions/confirm-package-payment.ru.md), [внесение прошедшего занятия](docs/instructions/record-past-attendance.ru.md).
+
+Split operator instruction: [Работа со сплитами](docs/instructions/split-workflow.ru.md).
+QA: [Позитивный тест-кейс сплита](docs/instructions/split-positive-test-case.ru.md).
 
 ## Validate
 
