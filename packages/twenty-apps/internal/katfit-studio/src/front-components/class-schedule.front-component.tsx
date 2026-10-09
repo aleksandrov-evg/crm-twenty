@@ -121,6 +121,16 @@ const styles: Record<string, CSSProperties> = {
     position: 'absolute',
     right: 4,
     textAlign: 'left',
+    zIndex: 1,
+  },
+  timeSlot: {
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    left: 0,
+    padding: 0,
+    position: 'absolute',
+    right: 0,
   },
   formBackdrop: {
     alignItems: 'center',
@@ -481,17 +491,7 @@ const ClassSchedule = () => {
       : '56px minmax(180px, 1fr)';
   const gridHeight = (GRID_END_HOUR - GRID_START_HOUR) * HOUR_HEIGHT;
 
-  const openNewSessionForm = (day: Date, event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.target !== event.currentTarget) return;
-
-    const dayColumnBounds = event.currentTarget.getBoundingClientRect();
-    const clickedHour = Math.max(
-      GRID_START_HOUR,
-      Math.min(
-        GRID_END_HOUR - 1,
-        GRID_START_HOUR + Math.floor((event.clientY - dayColumnBounds.top) / HOUR_HEIGHT),
-      ),
-    );
+  const openNewSessionForm = (day: Date, clickedHour: number) => {
     const startsAt = new Date(day);
     startsAt.setHours(clickedHour, 0, 0, 0);
     setSessionForm(getNewSessionForm(startsAt));
@@ -607,7 +607,23 @@ const ClassSchedule = () => {
           {days.map((day) => {
             const dayKey = toDateKey(day);
             return (
-              <div key={dayKey} style={{ ...styles.dayColumn, height: gridHeight }} onClick={(event) => openNewSessionForm(day, event)}>
+              <div key={dayKey} style={{ ...styles.dayColumn, height: gridHeight }}>
+                {Array.from(
+                  { length: GRID_END_HOUR - GRID_START_HOUR },
+                  (_, index) => (
+                    <button
+                      key={index}
+                      aria-label={`Создать занятие в ${String(GRID_START_HOUR + index).padStart(2, '0')}:00`}
+                      style={{
+                        ...styles.timeSlot,
+                        height: HOUR_HEIGHT,
+                        top: index * HOUR_HEIGHT,
+                      }}
+                      type="button"
+                      onClick={() => openNewSessionForm(day, GRID_START_HOUR + index)}
+                    />
+                  ),
+                )}
                 {sessions.filter((session) => toDateKey(new Date(session.startsAt)) === dayKey).map((session) => {
                   const startsAt = new Date(session.startsAt);
                   const endsAt = new Date(session.endsAt);
