@@ -531,12 +531,13 @@ const ClassSchedule = () => {
     try {
       const client = new CoreApiClient();
       if (sessionForm.id === null) {
-        await client.mutation({
+        const response = (await client.mutation({
           createClassSession: {
             __args: { data: { ...data, status: 'PLANNED', bookedCount: 0 } },
             id: true,
           },
-        } as never);
+        } as never)) as unknown as { createClassSession: { id: string } };
+        setSessionForm({ ...sessionForm, id: response.createClassSession.id });
       } else {
         await client.mutation({
           updateClassSession: {
@@ -544,11 +545,14 @@ const ClassSchedule = () => {
             id: true,
           },
         } as never);
+        setSessionForm(null);
       }
-      setSessionForm(null);
       setReloadVersion((currentReloadVersion) => currentReloadVersion + 1);
       await enqueueSnackbar({
-        message: sessionForm.id === null ? 'Занятие создано.' : 'Занятие обновлено.',
+        message:
+          sessionForm.id === null
+            ? 'Занятие создано. Теперь можно добавить клиентов.'
+            : 'Занятие обновлено.',
         variant: 'success',
       });
     } catch (saveError) {
@@ -692,7 +696,7 @@ const ClassSchedule = () => {
             </div>
             <div style={styles.formActions}>
               <button style={styles.button} type="button" onClick={() => setSessionForm(null)} disabled={isSaving}>Отмена</button>
-              <button style={styles.activeButton} type="submit" disabled={isSaving}>{isSaving ? 'Сохранение…' : 'Сохранить'}</button>
+              <button style={styles.activeButton} type="submit" disabled={isSaving}>{isSaving ? 'Сохранение…' : sessionForm.id === null ? 'Создать занятие' : 'Сохранить'}</button>
             </div>
           </form>
         </div>
