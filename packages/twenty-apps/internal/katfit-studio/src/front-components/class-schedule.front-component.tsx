@@ -482,6 +482,8 @@ const ClassSchedule = () => {
   const gridHeight = (GRID_END_HOUR - GRID_START_HOUR) * HOUR_HEIGHT;
 
   const openNewSessionForm = (day: Date, event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+
     const dayColumnBounds = event.currentTarget.getBoundingClientRect();
     const clickedHour = Math.max(
       GRID_START_HOUR,
