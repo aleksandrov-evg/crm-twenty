@@ -28,7 +28,7 @@ type SessionForm = {
   name: string;
   sessionFormat: string;
   startsAt: string;
-  endsAt: string;
+  durationMinutes: string;
   capacity: string;
 };
 
@@ -138,6 +138,11 @@ const styles: Record<string, CSSProperties> = {
     minHeight: 32,
     padding: '4px 8px',
   },
+  readOnlyValue: {
+    color: 'var(--t-font-color-secondary)',
+    minHeight: 32,
+    padding: '6px 0',
+  },
   formActions: { display: 'flex', gap: 8, justifyContent: 'flex-end' },
   error: { color: 'var(--t-color-red)', padding: 16 },
 };
@@ -179,6 +184,12 @@ const toDateTimeLocalValue = (date: Date): string =>
     date.getMinutes(),
   ).padStart(2, '0')}`;
 
+const getEndsAt = (startsAtValue: string, durationMinutesValue: string): Date => {
+  const endsAt = new Date(startsAtValue);
+  endsAt.setMinutes(endsAt.getMinutes() + Number(durationMinutesValue));
+  return endsAt;
+};
+
 const getNewSessionForm = (startsAt: Date): SessionForm => {
   const endsAt = new Date(startsAt);
   endsAt.setHours(endsAt.getHours() + 1);
@@ -188,7 +199,7 @@ const getNewSessionForm = (startsAt: Date): SessionForm => {
     name: '',
     sessionFormat: SESSION_FORMAT_OPTIONS[0].value,
     startsAt: toDateTimeLocalValue(startsAt),
-    endsAt: toDateTimeLocalValue(endsAt),
+    durationMinutes: String((endsAt.getTime() - startsAt.getTime()) / 60_000),
     capacity: '4',
   };
 };
@@ -198,7 +209,10 @@ const getSessionForm = (session: ClassSession): SessionForm => ({
   name: session.name,
   sessionFormat: session.sessionFormat,
   startsAt: toDateTimeLocalValue(new Date(session.startsAt)),
-  endsAt: toDateTimeLocalValue(new Date(session.endsAt)),
+  durationMinutes: String(
+    (new Date(session.endsAt).getTime() - new Date(session.startsAt).getTime()) /
+      60_000,
+  ),
   capacity: String(session.capacity),
 });
 
@@ -308,11 +322,12 @@ const ClassSchedule = () => {
     if (sessionForm === null) return;
 
     const startsAt = new Date(sessionForm.startsAt);
-    const endsAt = new Date(sessionForm.endsAt);
+    const durationMinutes = Number(sessionForm.durationMinutes);
+    const endsAt = getEndsAt(sessionForm.startsAt, sessionForm.durationMinutes);
     const capacity = Number(sessionForm.capacity);
-    if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt || !Number.isInteger(capacity) || capacity < 1) {
+    if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || !Number.isInteger(durationMinutes) || durationMinutes < 1 || !Number.isInteger(capacity) || capacity < 1) {
       await enqueueSnackbar({
-        message: 'Укажите корректные время и вместимость.',
+        message: 'Укажите корректные длительность и вместимость.',
         variant: 'error',
       });
       return;
@@ -448,8 +463,21 @@ const ClassSchedule = () => {
               <input style={styles.input} type="datetime-local" value={sessionForm.startsAt} onChange={(event) => setSessionForm({ ...sessionForm, startsAt: event.target.value })} required />
             </label>
             <label style={styles.formLabel}>
+              Длительность, мин.
+              <input style={styles.input} type="number" min="1" step="5" value={sessionForm.durationMinutes} onChange={(event) => setSessionForm({ ...sessionForm, durationMinutes: event.target.value })} required />
+            </label>
+            <label style={styles.formLabel}>
               Окончание
-              <input style={styles.input} type="datetime-local" value={sessionForm.endsAt} onChange={(event) => setSessionForm({ ...sessionForm, endsAt: event.target.value })} required />
+              <span style={styles.readOnlyValue}>
+                {Number.isNaN(getEndsAt(sessionForm.startsAt, sessionForm.durationMinutes).getTime())
+                  ? 'Укажите начало и длительность'
+                  : getEndsAt(sessionForm.startsAt, sessionForm.durationMinutes).toLocaleString('ru-RU', {
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      month: 'short',
+                    })}
+              </span>
             </label>
             <label style={styles.formLabel}>
               Вместимость
