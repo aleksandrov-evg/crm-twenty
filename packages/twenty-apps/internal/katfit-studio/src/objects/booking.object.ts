@@ -36,5 +36,16 @@ export default defineObject({
     { universalIdentifier: '395c61c2-ff58-4cfb-99ea-5a2800f91e34', type: FieldType.NUMBER, name: 'hoursBeforeStartAtCancellation', label: 'Часов до начала', icon: 'IconClockCancel', isNullable: true },
     { universalIdentifier: '16389ea1-d8c8-434f-9d66-ab1578ba9fba', type: FieldType.BOOLEAN, name: 'consumesVisit', label: 'Списывает посещение', icon: 'IconCircleMinus', defaultValue: false },
     { universalIdentifier: 'a7161c9f-f2f8-4185-9822-0b30dcb01cad', type: FieldType.TEXT, name: 'externalId', label: 'Внешний ID', icon: 'IconId', isNullable: true },
+    { universalIdentifier: '67b9a7a8-9d41-47bb-aec0-6eb7404a1775', type: FieldType.DATE_TIME, name: 'recordedAt', label: 'Внесено', icon: 'IconCalendarClock', isNullable: true },
+    { universalIdentifier: 'c36bb76e-3a04-4e72-b9b9-3b88c9d80b25', type: FieldType.TEXT, name: 'recordedBy', label: 'Кем внесено', icon: 'IconUser', isNullable: true },
+    { universalIdentifier: 'ac9bd73b-e184-419a-af27-1d1e567ad382', type: FieldType.TEXT, name: 'recordingReason', label: 'Причина внесения', icon: 'IconNote', isNullable: true },
+    { universalIdentifier: '30995ae4-2dd3-447b-b0a4-f92ec4204ce0', type: FieldType.SELECT, name: 'recordingSource', label: 'Источник сведений', icon: 'IconListDetails', isNullable: true, options: [
+      { id: 'a2229583-ced4-452e-b046-cf2ff64ecb94', value: 'TRAINER', label: 'Тренер', position: 0, color: 'blue' },
+      { id: '35850d6a-02f1-46d0-8010-74ad5b391f07', value: 'ATTENDANCE_LOG', label: 'Журнал посещений', position: 1, color: 'green' },
+      { id: '3c185ff6-9ffc-487b-a3b1-983ddc834e42', value: 'CLIENT', label: 'Подтверждение клиента', position: 2, color: 'sky' },
+      { id: '787db2d2-6544-41b5-93b0-3b986c3503d5', value: 'ADMIN', label: 'Решение администратора', position: 3, color: 'purple' },
+      { id: '6cc3db78-c4a6-4b5b-8a17-179ca10968ab', value: 'OTHER', label: 'Другое', position: 4, color: 'gray' },
+    ] },
+    { universalIdentifier: 'd37d796c-e530-4fe7-a6fa-60a94a1833cc', type: FieldType.TEXT, name: 'recordingSourceDetails', label: 'Пояснение источника', icon: 'IconNote', isNullable: true },
   ],
 });
