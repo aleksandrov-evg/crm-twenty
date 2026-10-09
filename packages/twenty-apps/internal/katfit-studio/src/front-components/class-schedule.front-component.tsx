@@ -47,6 +47,24 @@ type PersonOption = {
   name: { firstName: string | null; lastName: string | null } | null;
   emails: { primaryEmail: string | null } | null;
   phones: { primaryPhoneNumber: string | null } | null;
+  studioMemberships?: {
+    edges?: Array<{
+      node: MembershipOption;
+    }>;
+  } | null;
+};
+
+type MembershipOption = {
+  id: string;
+  status: string;
+  activatedAt: string | null;
+  expiresOn: string | null;
+  visitsAvailable: number;
+  product: {
+    id: string;
+    name: string;
+    sessionFormat: string;
+  } | null;
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -224,6 +242,9 @@ const styles: Record<string, CSSProperties> = {
     textAlign: 'left',
   },
   contact: { color: 'var(--t-font-color-secondary)', fontSize: 12 },
+  membershipAvailable: { color: 'var(--t-color-green)', fontSize: 12 },
+  membershipUnavailable: { color: 'var(--t-color-red)', fontSize: 12 },
+  disabledSearchResult: { cursor: 'not-allowed', opacity: 0.65 },
   error: { color: 'var(--t-color-red)', padding: 16 },
 };
 
@@ -308,6 +329,32 @@ const getPersonContact = (person: PersonOption): string =>
 
 const isActiveParticipant = (participant: Participant): boolean =>
   participant.status === 'BOOKED' || participant.status === 'ATTENDED';
+
+const getMatchingMembership = (
+  person: PersonOption,
+  sessionForm: SessionForm,
+): MembershipOption | null => {
+  if (sessionForm.id === null) return null;
+
+  const sessionStartsAt = new Date(sessionForm.startsAt);
+  if (Number.isNaN(sessionStartsAt.getTime())) return null;
+
+  const sessionDate = sessionStartsAt.toISOString().slice(0, 10);
+
+  return (
+    person.studioMemberships?.edges
+      ?.map(({ node }) => node)
+      .find(
+        (membership) =>
+          membership.status === 'ACTIVE' &&
+          membership.visitsAvailable > 0 &&
+          membership.activatedAt !== null &&
+          membership.activatedAt <= sessionStartsAt.toISOString() &&
+          (membership.expiresOn === null || membership.expiresOn >= sessionDate) &&
+          membership.product?.sessionFormat === sessionForm.sessionFormat,
+      ) ?? null
+  );
+};
 
 const getWeekDays = (selectedDate: Date, mode: 'day' | 'week'): Date[] =>
   mode === 'day'
@@ -465,6 +512,23 @@ const ClassSchedule = () => {
               name: { firstName: true, lastName: true },
               emails: { primaryEmail: true },
               phones: { primaryPhoneNumber: true },
+              studioMemberships: {
+                __args: { first: 100 },
+                edges: {
+                  node: {
+                    id: true,
+                    status: true,
+                    activatedAt: true,
+                    expiresOn: true,
+                    visitsAvailable: true,
+                    product: {
+                      id: true,
+                      name: true,
+                      sessionFormat: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -509,6 +573,15 @@ const ClassSchedule = () => {
       return false;
     }
 
+    const membership = getMatchingMembership(person, sessionForm);
+    if (membership === null || membership.product === null) {
+      await enqueueSnackbar({
+        message: `У клиента нет действующего пакета на формат «${getSessionFormatLabel(sessionForm.sessionFormat)}».`,
+        variant: 'error',
+      });
+      return false;
+    }
+
     try {
       await new CoreApiClient().mutation({
         createStudioBooking: {
@@ -520,6 +593,8 @@ const ClassSchedule = () => {
               bookedAt: new Date().toISOString(),
               consumesVisit: false,
               personId: person.id,
+              membershipId: membership.id,
+              productId: membership.product.id,
               classSessionId: sessionForm.id,
             },
           },
@@ -828,7 +903,7 @@ const ClassSchedule = () => {
           </form>
         </div>
       ) : null}
-      {isPersonPickerOpen ? (
+      {isPersonPickerOpen && sessionForm !== null ? (
         <div style={styles.pickerBackdrop}>
           <div style={styles.picker}>
             <strong>Добавить клиента</strong>
@@ -849,21 +924,38 @@ const ClassSchedule = () => {
                         (participant) => participant.person?.id === person.id,
                       ),
                   )
-                  .map((person) => (
-                    <button
-                      key={person.id}
-                      style={styles.searchResult}
-                      type="button"
-                      onClick={() =>
-                        void addParticipant(person).then((wasAdded) => {
-                          if (wasAdded) setIsPersonPickerOpen(false);
-                        })
-                      }
-                    >
-                      <strong>{getPersonLabel(person)}</strong>
-                      <span style={styles.contact}>{getPersonContact(person)}</span>
-                    </button>
-                  ))
+                  .map((person) => {
+                    const membership = getMatchingMembership(person, sessionForm);
+
+                    return (
+                      <button
+                        key={person.id}
+                        disabled={membership === null}
+                        style={{
+                          ...styles.searchResult,
+                          ...(membership === null ? styles.disabledSearchResult : {}),
+                        }}
+                        type="button"
+                        onClick={() =>
+                          void addParticipant(person).then((wasAdded) => {
+                            if (wasAdded) setIsPersonPickerOpen(false);
+                          })
+                        }
+                      >
+                        <strong>{getPersonLabel(person)}</strong>
+                        <span style={styles.contact}>{getPersonContact(person)}</span>
+                        {membership === null ? (
+                          <span style={styles.membershipUnavailable}>
+                            Нет действующего пакета на {getSessionFormatLabel(sessionForm.sessionFormat)}
+                          </span>
+                        ) : (
+                          <span style={styles.membershipAvailable}>
+                            {membership.product?.name} · доступно: {membership.visitsAvailable}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
               : null}
             {!isPersonSearchLoading && personSearch.trim().length >= 2 && personResults.length === 0 ? <span>Клиенты не найдены.</span> : null}
             <div style={styles.formActions}>
