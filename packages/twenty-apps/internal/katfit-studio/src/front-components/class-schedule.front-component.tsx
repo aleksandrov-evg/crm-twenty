@@ -2,6 +2,7 @@ import { type CSSProperties, useCallback, useEffect, useMemo, useState } from 'r
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineFrontComponent } from 'twenty-sdk/define';
 import { enqueueSnackbar } from 'twenty-sdk/front-component';
+import { escapeForIlike } from 'twenty-shared/utils';
 
 import { SESSION_FORMAT_OPTIONS } from 'src/constants/select-options';
 
@@ -44,6 +45,8 @@ type Participant = {
 type PersonOption = {
   id: string;
   name: { firstName: string | null; lastName: string | null } | null;
+  emails: { primaryEmail: string | null } | null;
+  phones: { primaryPhoneNumber: string | null } | null;
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -188,6 +191,39 @@ const styles: Record<string, CSSProperties> = {
     cursor: 'pointer',
     padding: 2,
   },
+  pickerBackdrop: {
+    alignItems: 'center',
+    background: 'rgba(0, 0, 0, 0.55)',
+    display: 'flex',
+    inset: 0,
+    justifyContent: 'center',
+    padding: 16,
+    position: 'absolute',
+    zIndex: 2,
+  },
+  picker: {
+    background: 'var(--t-background-primary)',
+    border: '1px solid var(--t-border-color-medium)',
+    borderRadius: 8,
+    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.35)',
+    display: 'grid',
+    gap: 12,
+    maxWidth: 460,
+    padding: 16,
+    width: '100%',
+  },
+  searchResult: {
+    background: 'var(--t-background-secondary)',
+    border: '1px solid var(--t-border-color-light)',
+    borderRadius: 4,
+    color: 'var(--t-font-color-primary)',
+    cursor: 'pointer',
+    display: 'grid',
+    gap: 2,
+    padding: 10,
+    textAlign: 'left',
+  },
+  contact: { color: 'var(--t-font-color-secondary)', fontSize: 12 },
   error: { color: 'var(--t-color-red)', padding: 16 },
 };
 
@@ -265,6 +301,11 @@ const getPersonLabel = (person: PersonOption | Participant['person']): string =>
   return name || 'Без имени';
 };
 
+const getPersonContact = (person: PersonOption): string =>
+  [person.phones?.primaryPhoneNumber, person.emails?.primaryEmail]
+    .filter((contact): contact is string => Boolean(contact))
+    .join(' · ') || 'Контакты не указаны';
+
 const isActiveParticipant = (participant: Participant): boolean =>
   participant.status === 'BOOKED' || participant.status === 'ATTENDED';
 
@@ -283,8 +324,10 @@ const ClassSchedule = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [reloadVersion, setReloadVersion] = useState(0);
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [people, setPeople] = useState<PersonOption[]>([]);
+  const [isPersonPickerOpen, setIsPersonPickerOpen] = useState(false);
   const [personSearch, setPersonSearch] = useState('');
+  const [personResults, setPersonResults] = useState<PersonOption[]>([]);
+  const [isPersonSearchLoading, setIsPersonSearchLoading] = useState(false);
   const [isParticipantsLoading, setIsParticipantsLoading] = useState(false);
   const [participantVersion, setParticipantVersion] = useState(0);
   const days = useMemo(() => getWeekDays(selectedDate, mode), [mode, selectedDate]);
@@ -369,16 +412,10 @@ const ClassSchedule = () => {
             },
           },
         },
-        people: {
-          __args: { first: 100 },
-          edges: { node: { id: true, name: { firstName: true, lastName: true } } },
-        },
       } as never)) as unknown as {
         studioBookings?: { edges?: Array<{ node: Participant }> };
-        people?: { edges?: Array<{ node: PersonOption }> };
       };
       setParticipants(response.studioBookings?.edges?.map(({ node }) => node) ?? []);
-      setPeople(response.people?.edges?.map(({ node }) => node) ?? []);
     } catch (loadError) {
       await enqueueSnackbar({
         message:
@@ -395,24 +432,81 @@ const ClassSchedule = () => {
   useEffect(() => {
     if (sessionForm?.id === null || sessionForm === null) {
       setParticipants([]);
-      setPeople([]);
       return;
     }
     void loadParticipants(sessionForm.id);
   }, [loadParticipants, participantVersion, sessionForm?.id]);
 
-  const addParticipant = async (person: PersonOption) => {
-    if (sessionForm?.id === null || sessionForm === null) return;
+  const searchPeople = useCallback(async (searchTerm: string) => {
+    if (searchTerm.trim().length < 2) {
+      setPersonResults([]);
+      return;
+    }
+
+    setIsPersonSearchLoading(true);
+    try {
+      const searchPattern = `%${escapeForIlike(searchTerm.trim())}%`;
+      const response = (await new CoreApiClient().query({
+        people: {
+          __args: {
+            filter: {
+              or: [
+                { name: { firstName: { ilike: searchPattern } } },
+                { name: { lastName: { ilike: searchPattern } } },
+                { emails: { primaryEmail: { ilike: searchPattern } } },
+                { phones: { primaryPhoneNumber: { ilike: searchPattern } } },
+              ],
+            },
+            first: 10,
+          },
+          edges: {
+            node: {
+              id: true,
+              name: { firstName: true, lastName: true },
+              emails: { primaryEmail: true },
+              phones: { primaryPhoneNumber: true },
+            },
+          },
+        },
+      } as never)) as unknown as {
+        people?: { edges?: Array<{ node: PersonOption }> };
+      };
+      setPersonResults(response.people?.edges?.map(({ node }) => node) ?? []);
+    } catch (searchError) {
+      await enqueueSnackbar({
+        message:
+          searchError instanceof Error
+            ? searchError.message
+            : 'Не удалось найти клиентов.',
+        variant: 'error',
+      });
+    } finally {
+      setIsPersonSearchLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isPersonPickerOpen) return;
+
+    const searchTimeout = window.setTimeout(() => {
+      void searchPeople(personSearch);
+    }, 300);
+
+    return () => window.clearTimeout(searchTimeout);
+  }, [isPersonPickerOpen, personSearch, searchPeople]);
+
+  const addParticipant = async (person: PersonOption): Promise<boolean> => {
+    if (sessionForm?.id === null || sessionForm === null) return false;
     if (activeParticipants.length >= Number(sessionForm.capacity)) {
       await enqueueSnackbar({
         message: 'Все места на занятии уже заняты.',
         variant: 'error',
       });
-      return;
+      return false;
     }
     if (activeParticipants.some((participant) => participant.person?.id === person.id)) {
       await enqueueSnackbar({ message: 'Клиент уже добавлен.', variant: 'error' });
-      return;
+      return false;
     }
 
     try {
@@ -444,12 +538,14 @@ const ClassSchedule = () => {
       setParticipantVersion((currentParticipantVersion) => currentParticipantVersion + 1);
       setReloadVersion((currentReloadVersion) => currentReloadVersion + 1);
       setPersonSearch('');
+      return true;
     } catch (saveError) {
       await enqueueSnackbar({
         message:
           saveError instanceof Error ? saveError.message : 'Не удалось добавить клиента.',
         variant: 'error',
       });
+      return false;
     }
   };
 
@@ -722,12 +818,7 @@ const ClassSchedule = () => {
               )) : null}
               {sessionForm.id !== null && !isParticipantsLoading && activeParticipants.length === 0 ? <span>Участников пока нет.</span> : null}
               {sessionForm.id !== null && activeParticipants.length < Number(sessionForm.capacity) ? (
-                <>
-                  <input style={styles.input} placeholder="Найти клиента" value={personSearch} onChange={(event) => setPersonSearch(event.target.value)} />
-                  {personSearch.trim().length > 0 ? people.filter((person) => getPersonLabel(person).toLocaleLowerCase('ru-RU').includes(personSearch.trim().toLocaleLowerCase('ru-RU'))).filter((person) => !activeParticipants.some((participant) => participant.person?.id === person.id)).slice(0, 5).map((person) => (
-                    <button key={person.id} style={styles.button} type="button" onClick={() => void addParticipant(person)}>{getPersonLabel(person)}</button>
-                  )) : null}
-                </>
+                <button style={styles.button} type="button" onClick={() => setIsPersonPickerOpen(true)}>Добавить клиента</button>
               ) : null}
             </div>
             <div style={styles.formActions}>
@@ -735,6 +826,50 @@ const ClassSchedule = () => {
               <button style={styles.activeButton} type="submit" disabled={isSaving}>{isSaving ? 'Сохранение…' : sessionForm.id === null ? 'Создать занятие' : 'Сохранить'}</button>
             </div>
           </form>
+        </div>
+      ) : null}
+      {isPersonPickerOpen ? (
+        <div style={styles.pickerBackdrop}>
+          <div style={styles.picker}>
+            <strong>Добавить клиента</strong>
+            <input
+              autoFocus
+              placeholder="Имя, телефон или email"
+              style={styles.input}
+              value={personSearch}
+              onChange={(event) => setPersonSearch(event.target.value)}
+            />
+            {personSearch.trim().length < 2 ? <span>Введите минимум 2 символа.</span> : null}
+            {isPersonSearchLoading ? <span>Поиск клиентов…</span> : null}
+            {!isPersonSearchLoading && personSearch.trim().length >= 2
+              ? personResults
+                  .filter(
+                    (person) =>
+                      !activeParticipants.some(
+                        (participant) => participant.person?.id === person.id,
+                      ),
+                  )
+                  .map((person) => (
+                    <button
+                      key={person.id}
+                      style={styles.searchResult}
+                      type="button"
+                      onClick={() =>
+                        void addParticipant(person).then((wasAdded) => {
+                          if (wasAdded) setIsPersonPickerOpen(false);
+                        })
+                      }
+                    >
+                      <strong>{getPersonLabel(person)}</strong>
+                      <span style={styles.contact}>{getPersonContact(person)}</span>
+                    </button>
+                  ))
+              : null}
+            {!isPersonSearchLoading && personSearch.trim().length >= 2 && personResults.length === 0 ? <span>Клиенты не найдены.</span> : null}
+            <div style={styles.formActions}>
+              <button style={styles.button} type="button" onClick={() => { setIsPersonPickerOpen(false); setPersonSearch(''); setPersonResults([]); }}>Закрыть</button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
