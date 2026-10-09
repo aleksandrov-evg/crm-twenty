@@ -70,7 +70,7 @@ const styles: Record<string, CSSProperties> = {
     padding: '4px 10px',
   },
   gridScroll: { flex: 1, overflow: 'auto', padding: 12 },
-  grid: { display: 'grid', minWidth: 800 },
+  grid: { display: 'grid', width: '100%' },
   dayHeader: {
     alignItems: 'center',
     borderBottom: '1px solid var(--t-border-color-light)',
@@ -208,7 +208,7 @@ const getWeekDays = (selectedDate: Date, mode: 'day' | 'week'): Date[] =>
     : Array.from({ length: 7 }, (_, index) => addDays(startOfWeek(selectedDate), index));
 
 const ClassSchedule = () => {
-  const [mode, setMode] = useState<'day' | 'week'>('week');
+  const [mode, setMode] = useState<'day' | 'week'>('day');
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [sessions, setSessions] = useState<ClassSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -283,7 +283,10 @@ const ClassSchedule = () => {
     setSelectedDate(addDays(selectedDate, offset * (mode === 'day' ? 1 : 7)));
   };
 
-  const gridTemplateColumns = `56px repeat(${days.length}, minmax(180px, 1fr))`;
+  const gridTemplateColumns =
+    mode === 'week'
+      ? '56px repeat(7, minmax(0, 1fr))'
+      : '56px minmax(180px, 1fr)';
   const gridHeight = (GRID_END_HOUR - GRID_START_HOUR) * HOUR_HEIGHT;
 
   const openNewSessionForm = (day: Date, event: React.MouseEvent<HTMLDivElement>) => {
