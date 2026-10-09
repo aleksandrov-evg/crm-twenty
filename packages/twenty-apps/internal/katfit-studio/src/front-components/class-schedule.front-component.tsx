@@ -3,6 +3,8 @@ import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineFrontComponent } from 'twenty-sdk/define';
 import { enqueueSnackbar } from 'twenty-sdk/front-component';
 
+import { SESSION_FORMAT_OPTIONS } from 'src/constants/select-options';
+
 export const CLASS_SCHEDULE_FRONT_COMPONENT_UNIVERSAL_IDENTIFIER =
   '67c2f57f-2d8d-4b61-8a06-93a7f9070d75';
 
@@ -15,6 +17,7 @@ type ClassSession = {
   name: string;
   startsAt: string;
   endsAt: string;
+  sessionFormat: string;
   status: string;
   bookedCount: number;
   capacity: number;
@@ -124,6 +127,11 @@ const toDateKey = (date: Date): string =>
     date.getDate(),
   ).padStart(2, '0')}`;
 
+const getSessionFormatLabel = (sessionFormat: string): string =>
+  SESSION_FORMAT_OPTIONS.find(
+    (sessionFormatOption) => sessionFormatOption.value === sessionFormat,
+  )?.label ?? sessionFormat;
+
 const getWeekDays = (selectedDate: Date, mode: 'day' | 'week'): Date[] =>
   mode === 'day'
     ? [startOfDay(selectedDate)]
@@ -163,6 +171,7 @@ const ClassSchedule = () => {
                 name: true,
                 startsAt: true,
                 endsAt: true,
+                sessionFormat: true,
                 status: true,
                 bookedCount: true,
                 capacity: true,
@@ -249,10 +258,17 @@ const ClassSchedule = () => {
                   const endsAt = new Date(session.endsAt);
                   const top = Math.max(0, ((startsAt.getHours() + startsAt.getMinutes() / 60) - GRID_START_HOUR) * HOUR_HEIGHT);
                   const height = Math.max(36, ((endsAt.getTime() - startsAt.getTime()) / 3_600_000) * HOUR_HEIGHT);
+                  const startsAtLabel = startsAt.toLocaleTimeString('ru-RU', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+                  const sessionFormatLabel = getSessionFormatLabel(
+                    session.sessionFormat,
+                  );
                   return (
-                    <button key={session.id} type="button" style={{ ...styles.session, top, height }} data-tooltip={`${session.name} · ${session.bookedCount}/${session.capacity}`}>
-                      <strong>{session.name}</strong><br />
-                      {startsAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} · {session.bookedCount}/{session.capacity}
+                    <button key={session.id} type="button" style={{ ...styles.session, top, height }} data-tooltip={`${sessionFormatLabel} · ${startsAtLabel} · ${session.bookedCount}/${session.capacity}`}>
+                      <strong>{sessionFormatLabel}</strong><br />
+                      {startsAtLabel} · {session.bookedCount}/{session.capacity}
                     </button>
                   );
                 })}
