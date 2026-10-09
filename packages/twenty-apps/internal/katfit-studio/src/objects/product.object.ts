@@ -64,7 +64,7 @@ export default defineObject({
       name: 'durationMinutes',
       label: 'Длительность, минут',
       icon: 'IconClock',
-      defaultValue: 60,
+      defaultValue: 55,
     },
     {
       universalIdentifier: '533e574b-dad6-422c-9fd0-805409205f1f',
