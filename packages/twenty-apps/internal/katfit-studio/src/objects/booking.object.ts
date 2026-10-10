@@ -18,6 +18,7 @@ export default defineObject({
         { id: '7b69e415-101b-4092-be2a-3e4492979905', value: 'INTRO', label: 'Intro', position: 1, color: 'blue' },
         { id: '935dd17b-3391-4449-99a7-4c98f0b87dda', value: 'PERSONAL', label: 'Персональная', position: 2, color: 'purple' },
         { id: 'b0821ddf-098a-4d59-8f1c-e00bb10259a1', value: 'MAKE_UP', label: 'Отработка', position: 3, color: 'orange' },
+        { id: '4c2c01ea-6d10-438e-aea1-d50b2db88701', value: 'SPLIT', label: 'Сплит', position: 4, color: 'violet' },
       ],
     },
     {

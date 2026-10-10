@@ -27,9 +27,10 @@ export const SESSION_FORMAT_OPTIONS = [
   { id: '67ddce18-70b4-4f41-a846-c2e92a2aca07', value: 'GROUP_REFORMER', label: 'Группа на реформере', position: 0, color: 'green' },
   { id: '09d1c8ca-d76d-44af-b881-d3dc56c7894d', value: 'INTRO_REFORMER', label: 'Intro на реформере', position: 1, color: 'blue' },
   { id: '20e8f802-e6fc-4b3d-89e8-52e85d8f28b4', value: 'PERSONAL_EQUIPMENT', label: 'Персональное на оборудовании', position: 2, color: 'purple' },
-  { id: '5780d3ad-5e31-42aa-b86c-4495d05c687f', value: 'MAT_PILATES', label: 'Пилатес на коврике', position: 3, color: 'yellow' },
-  { id: 'd7ffcbcd-1293-4233-a08e-a330ac732304', value: 'STRETCHING', label: 'Стрейчинг', position: 4, color: 'pink' },
-  { id: 'f6d938c0-c66c-435e-b88e-dff2c46017b6', value: 'TRX', label: 'TRX', position: 5, color: 'orange' },
+  { id: '8500af47-0ff4-4a1b-8ec2-259b2bb2d7b9', value: 'SPLIT_EQUIPMENT', label: 'Сплит на оборудовании', position: 3, color: 'violet' },
+  { id: '5780d3ad-5e31-42aa-b86c-4495d05c687f', value: 'MAT_PILATES', label: 'Пилатес на коврике', position: 4, color: 'yellow' },
+  { id: 'd7ffcbcd-1293-4233-a08e-a330ac732304', value: 'STRETCHING', label: 'Стрейчинг', position: 5, color: 'pink' },
+  { id: 'f6d938c0-c66c-435e-b88e-dff2c46017b6', value: 'TRX', label: 'TRX', position: 6, color: 'orange' },
 ] as const;
 
 export const PREFERRED_CHANNEL_OPTIONS = [
