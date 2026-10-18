@@ -1,3 +1,4 @@
+import { checkYandexStartupAuthorization } from './observability/check-yandex-startup-authorization';
 import { configureCalendarCrmExport } from './exporting/configure-calendar-crm-export';
 import { describeCalendarStartupError } from './observability/describe-calendar-startup-error';
 import {
@@ -246,9 +247,11 @@ const start = async (): Promise<void> => {
     ? startCalendarPolling(crmExport.create(source), 'crm-export')
     : null;
   calendarLogger.event('info', 'service.started', { result: 'started' });
+  const authorizationCheck = checkYandexStartupAuthorization(process.env);
   const shutdown = (): void => {
     void (async () => {
       await Promise.all([
+        authorizationCheck,
         polling?.stop(),
         crmExportWorker?.stop(),
         cancellationWorker?.stop(),

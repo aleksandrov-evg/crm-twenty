@@ -792,3 +792,13 @@ subsequent result changes, suppressing identical results. Discovery/connect CLI
 commands report their own discovery result. Polling checks saved connections;
 without a saved connection, use `discover`/`connect` to check credentials.
 The existing `CALENDAR_LOG_LEVEL` controls visibility (`info` by default).
+
+On every service start, `yandex.startup_check` automatically performs read-only
+calendar discovery using `YANDEX_CALDAV_USERNAME` and
+`YANDEX_CALDAV_APP_PASSWORD` passed through Compose. It logs `authorized` and the
+calendar count, or `auth-required`, `forbidden`, `unavailable`, or
+`discovery-failed`. Missing credentials produce `not-ready` with reason
+`CALDAV_CREDENTIALS_REQUIRED`. The check runs once independently of polling and
+does not block HTTP startup or enable synchronization. It creates no connection
+and makes no calendar or CRM changes. Connection registration and activation
+remain separate steps. No calendar names, URLs, or credentials are logged.

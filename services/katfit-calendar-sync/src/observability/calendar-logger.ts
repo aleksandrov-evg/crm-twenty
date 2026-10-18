@@ -21,6 +21,7 @@ const IDENTIFIER =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const EVENTS = new Set([
   'yandex.authorization',
+  'yandex.startup_check',
   'crm.export.scan',
   'crm.export.review',
   'crm.export.confirmed',
@@ -43,6 +44,7 @@ const EVENTS = new Set([
   'calendar.schedule',
 ]);
 const LABELS = new Set([
+  'discovery-failed',
   'authorized',
   'both-sides-verified',
   'write-verified',
@@ -91,6 +93,7 @@ const LABELS = new Set([
 ]);
 const REASONS = new Set<string>([
   ...CALENDAR_CONFIGURATION_CODES,
+  'CALDAV_CREDENTIALS_REQUIRED',
   'CRM_EXPORT_REFERENCE_REQUIRED',
   'CRM_EXPORT_FINALIZATION_REVIEW',
   'CRM_EXPORT_CAPABILITIES_UNAVAILABLE',
