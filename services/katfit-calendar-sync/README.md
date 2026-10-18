@@ -780,3 +780,15 @@ ORDER BY "updatedAt" DESC;
 preparation/polling даёт `CALENDAR_CRM_EXPORT_REQUIRES_PREPARATION_AND_POLLING`,
 а неверный ключ шифрования — `CALENDAR_ENCRYPTION_KEY_INVALID`. Неизвестная ошибка
 запуска больше не обозначается автоматически как ошибка БД.
+
+### Yandex authorization logging
+
+`yandex.authorization` reports `authorized` (info) after successful calendar discovery
+or a successful polling snapshot, `auth-required` (error) for rejected or invalid
+credentials, and `forbidden` (error) for denied access. Network failures do not
+count as authentication failures. No credentials or calendar contents are logged.
+Polling reports the first known result per connection after process startup and
+subsequent result changes, suppressing identical results. Discovery/connect CLI
+commands report their own discovery result. Polling checks saved connections;
+without a saved connection, use `discover`/`connect` to check credentials.
+The existing `CALENDAR_LOG_LEVEL` controls visibility (`info` by default).

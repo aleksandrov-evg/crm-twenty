@@ -3,6 +3,8 @@ import { DAVClient } from 'tsdav';
 import { xml2js } from 'xml-js';
 import { z } from 'zod';
 
+import { createYandexAuthorizationObserver } from '../observability/yandex-authorization-observer';
+
 import { createYandexCalDavTransport } from './create-yandex-caldav-transport';
 import {
   isYandexCalDavTarget,
@@ -26,7 +28,7 @@ export type YandexCalendarDiscoveryResult =
         | 'discovery-failed';
     };
 
-export const discoverYandexCalendars = async (credentials: {
+const discoverCalendars = async (credentials: {
   username: string;
   appPassword: string;
 }): Promise<YandexCalendarDiscoveryResult> => {
@@ -128,4 +130,13 @@ export const discoverYandexCalendars = async (credentials: {
   } finally {
     await transport.close();
   }
+};
+
+export const discoverYandexCalendars = async (credentials: {
+  username: string;
+  appPassword: string;
+}): Promise<YandexCalendarDiscoveryResult> => {
+  const result = await discoverCalendars(credentials);
+  createYandexAuthorizationObserver()(result.status);
+  return result;
 };

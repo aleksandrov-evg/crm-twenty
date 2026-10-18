@@ -1,3 +1,4 @@
+import { createYandexAuthorizationObserver } from '../observability/yandex-authorization-observer';
 import { calendarLogger } from '../observability/calendar-logger';
 import { type CalendarPollStore } from '../storage/calendar-poll.store';
 import { createYandexCalDavTransport } from '../transport/create-yandex-caldav-transport';
@@ -21,6 +22,8 @@ const readSnapshot: SnapshotReader = async (calendarUrl, credentials) => {
 };
 
 export class CalendarPoller {
+  private readonly observeAuthorization = createYandexAuthorizationObserver();
+
   constructor(
     private readonly store: CalendarPollStore,
     private readonly reader: SnapshotReader = readSnapshot,
@@ -33,6 +36,7 @@ export class CalendarPoller {
       const credentials = await this.store.readCredentials(lease);
       if (!credentials) return 'stale';
       const snapshot = await this.reader(lease.calendarUrl, credentials);
+      this.observeAuthorization(snapshot.status, lease.id);
       if (snapshot.status === 'snapshot') {
         const committed = await this.store.commitSnapshot(
           lease,

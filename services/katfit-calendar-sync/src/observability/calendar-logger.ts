@@ -20,6 +20,7 @@ const PRIORITY = { silent: 0, error: 1, info: 2, debug: 3 };
 const IDENTIFIER =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const EVENTS = new Set([
+  'yandex.authorization',
   'crm.export.scan',
   'crm.export.review',
   'crm.export.confirmed',
@@ -42,6 +43,7 @@ const EVENTS = new Set([
   'calendar.schedule',
 ]);
 const LABELS = new Set([
+  'authorized',
   'both-sides-verified',
   'write-verified',
   'already-matching',
