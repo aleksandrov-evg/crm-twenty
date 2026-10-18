@@ -1,3 +1,5 @@
+import { isCalendarResourceUrl } from './is-calendar-resource-url';
+import { readCalendarResource } from './read-calendar-resource';
 import { calendarLogger } from '../observability/calendar-logger';
 import { isStrongEtag } from './is-strong-etag';
 import { xml2js } from 'xml-js';
@@ -43,30 +45,7 @@ const responseSchema = z.object({
   propstat: z.union([propertyStatus, z.array(propertyStatus)]),
 });
 
-export const isCalendarResourceUrl = (
-  calendarUrl: string,
-  resourceUrl: string,
-): boolean => {
-  if (!isYandexCalDavTarget(calendarUrl) || !isYandexCalDavTarget(resourceUrl))
-    return false;
-  const collection = new URL(calendarUrl);
-  const resource = new URL(resourceUrl);
-  const prefix = collection.pathname.endsWith('/')
-    ? collection.pathname
-    : `${collection.pathname}/`;
-  if (!resource.pathname.startsWith(prefix)) return false;
-  try {
-    const filename = decodeURIComponent(resource.pathname.slice(prefix.length));
-    return (
-      filename.length > 0 &&
-      filename !== '.' &&
-      filename !== '..' &&
-      !/[/\\\x00-\x1f]/.test(filename)
-    );
-  } catch {
-    return false;
-  }
-};
+export { isCalendarResourceUrl } from './is-calendar-resource-url';
 
 export const readCalendarSnapshot = async (
   calendarUrl: string,
@@ -121,6 +100,7 @@ export const readCalendarSnapshot = async (
     if (entries.length > 2000) return reject('CALDAV_SNAPSHOT_RESOURCE_LIMIT');
     const resources: CalendarResourceSnapshot[] = [];
     const urls = new Set<string>();
+    let fallbackReads = 0;
 
     for (const entry of entries) {
       validationStage = 'CALDAV_SNAPSHOT_MEMBER';
@@ -142,13 +122,23 @@ export const readCalendarSnapshot = async (
       validationStage = 'CALDAV_SNAPSHOT_RESOURCE_URL';
       const url = new URL(member.href, calendarUrl).href;
       validationStage = 'CALDAV_SNAPSHOT_ETAG_PROPERTY';
-      const etag = xmlText.parse(properties.get('getetag'));
+      let etag = xmlText.parse(properties.get('getetag'));
       validationStage = 'CALDAV_SNAPSHOT_DATA_PROPERTY';
       const calendarData = xmlText.parse(properties.get('calendar-data'));
       if (!isCalendarResourceUrl(calendarUrl, url))
         return reject('CALDAV_SNAPSHOT_RESOURCE_URL');
       if (urls.has(url)) return reject('CALDAV_SNAPSHOT_DUPLICATE_URL');
-      if (!isStrongEtag(etag)) return reject('CALDAV_SNAPSHOT_WEAK_ETAG');
+      if (!isStrongEtag(etag)) {
+        if (++fallbackReads > 50) return reject('CALDAV_SNAPSHOT_ETAG_READ_LIMIT');
+        // Use a server-issued HTTP validator; never invent a strong tag from REPORT text.
+        const resource = await readCalendarResource(calendarUrl, url, fetch);
+        if (resource.status === 'auth-required' || resource.status === 'forbidden' || resource.status === 'unavailable')
+          return { status: resource.status };
+        if (resource.status !== 'read') return reject('CALDAV_SNAPSHOT_WEAK_ETAG');
+        if (resource.calendarData !== calendarData)
+          return reject('CALDAV_SNAPSHOT_CHANGED_DURING_READ');
+        etag = resource.etag;
+      }
       if (
         !/^BEGIN:VCALENDAR(?:\r\n|\r|\n)/.test(calendarData) ||
         !/(?:\r\n|\r|\n)END:VCALENDAR(?:\r\n|\r|\n)?$/.test(calendarData)

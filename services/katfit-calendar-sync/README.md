@@ -808,3 +808,9 @@ Rejected calendar snapshots emit `calendar.snapshot.rejected` with an allowliste
 HTTP/content-type, XML/multistatus, member/property status, resource URL, duplicate
 URL, ETag, or iCalendar validation failures without logging response bodies.
 These diagnostics do not relax validation or treat an invalid inventory as empty.
+
+When a REPORT ETag fails strong-validator syntax, polling performs a bounded GET
+of that resource (at most 50 fallbacks per inventory). It accepts only a genuine
+strong HTTP ETag and byte-for-byte matching calendar text. It never removes `W/`
+or adds quotes to manufacture a validator. A changed resource, missing/weak GET
+ETag, or fallback limit rejects the entire snapshot; no partial inventory is saved.

@@ -1,6 +1,6 @@
 import { isStrongEtag } from './is-strong-etag';
 import { readBoundedBody } from './read-bounded-body';
-import { isCalendarResourceUrl } from './read-calendar-snapshot';
+import { isCalendarResourceUrl } from './is-calendar-resource-url';
 
 export type CalendarResourceRead =
   | { status: 'read'; etag: string; calendarData: string }

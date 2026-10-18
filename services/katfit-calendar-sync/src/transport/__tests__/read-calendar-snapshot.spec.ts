@@ -53,6 +53,38 @@ describe('readCalendarSnapshot', () => {
     expect(JSON.stringify(event.mock.calls)).not.toContain(calendarUrl);
   });
 
+  it.each(['v1', 'W/&quot;v1&quot;'])(
+    'obtains a genuine strong validator via GET when REPORT returns %s', async (etag) => {
+      fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', etag)), {
+        status: 207, headers: { 'Content-Type': 'application/xml' },
+      })).mockResolvedValueOnce(new Response(calendarData, {
+        headers: { 'Content-Type': 'text/calendar', ETag: '"verified"' },
+      }));
+      expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
+        status: 'snapshot', resources: [{ url: `${calendarUrl}one.ics`, etag: '"verified"', calendarData }],
+      });
+      expect(fetch.mock.calls.map((call) => call[1]?.method)).toEqual(['REPORT', 'GET']);
+    },
+  );
+
+  it('rejects changes between REPORT and GET instead of mixing versions', async () => {
+    fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted')), {
+      status: 207, headers: { 'Content-Type': 'application/xml' },
+    })).mockResolvedValueOnce(new Response(calendarData.replace('UID:one', 'UID:changed'), {
+      headers: { 'Content-Type': 'text/calendar', ETag: '"verified"' },
+    }));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
+  });
+
+  it('does not promote a weak GET validator into a strong one', async () => {
+    fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted')), {
+      status: 207, headers: { 'Content-Type': 'application/xml' },
+    })).mockResolvedValueOnce(new Response(calendarData, {
+      headers: { 'Content-Type': 'text/calendar', ETag: 'W/"weak"' },
+    }));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
+  });
+
   it('accepts a valid empty inventory', async () => {
     respond(multistatus(''));
     expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
