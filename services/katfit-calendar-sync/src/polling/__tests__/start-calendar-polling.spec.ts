@@ -85,3 +85,30 @@ it('reports debug cycles without passing raw result objects to logs', async () =
     event.mockRestore();
   }
 });
+
+it.each(['idle', 'saved', 'failed'])(
+  'suppresses only idle cycles, preserving %s behavior',
+  async (result) => {
+    const { calendarLogger } =
+      await import('../../observability/calendar-logger');
+    const event = jest
+      .spyOn(calendarLogger, 'event')
+      .mockImplementation(() => {});
+    try {
+      const loop = startCalendarPolling(
+        { runOnce: async () => result },
+        'crm-export',
+      );
+      await loop.stop();
+      if (result === 'idle') expect(event).not.toHaveBeenCalled();
+      else
+        expect(event).toHaveBeenCalledWith(
+          result === 'failed' ? 'error' : 'debug',
+          'worker.cycle',
+          expect.objectContaining({ worker: 'crm-export', result }),
+        );
+    } finally {
+      event.mockRestore();
+    }
+  },
+);

@@ -1,5 +1,5 @@
 import { configureCalendarCrmExport } from './exporting/configure-calendar-crm-export';
-import { describeCalendarDatabaseError } from './storage/describe-calendar-database-error';
+import { describeCalendarStartupError } from './observability/describe-calendar-startup-error';
 import {
   calendarLogger,
   configureCalendarLogger,
@@ -22,6 +22,7 @@ import { CalendarImportPreviewStore } from './storage/calendar-import-preview.st
 import { CalendarPollStore } from './storage/calendar-poll.store';
 import { createCalendarDataSource } from './storage/create-calendar-data-source';
 
+let startupStage = 'configuration';
 const start = async (): Promise<void> => {
   const logLevel = configureCalendarLogger(process.env);
   const crmExport = configureCalendarCrmExport(process.env);
@@ -67,9 +68,11 @@ const start = async (): Promise<void> => {
       })
     : null;
 
+  startupStage = 'database';
   const source = await createCalendarDataSource(
     process.env.CALENDAR_DATABASE_URL,
   ).initialize();
+  startupStage = 'http';
   const server = createServer((request, response) => {
     if (request.method !== 'GET' || request.url !== '/healthz') {
       response.writeHead(404).end();
@@ -183,6 +186,7 @@ const start = async (): Promise<void> => {
     throw new Error('CALENDAR_HTTP_START_FAILED');
   }
 
+  startupStage = 'workers';
   const polling = cipher
     ? startCalendarPolling(
         new CalendarPoller(new CalendarPollStore(source, cipher)),
@@ -269,10 +273,8 @@ const start = async (): Promise<void> => {
 
 void start().catch((error: unknown) => {
   calendarLogger.event('error', 'service.failed', {
-    reason:
-      error instanceof Error && error.message === 'CALENDAR_LOG_LEVEL_INVALID'
-        ? error.message
-        : describeCalendarDatabaseError(error).code,
+    stage: startupStage,
+    ...describeCalendarStartupError(error),
   });
   process.exitCode = 1;
 });

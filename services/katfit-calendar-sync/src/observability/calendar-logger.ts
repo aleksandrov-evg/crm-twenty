@@ -1,6 +1,12 @@
+import {
+  CALENDAR_CONFIGURATION_CODES,
+  CALENDAR_CONFIGURATION_FIELDS,
+} from './describe-calendar-startup-error';
 export type CalendarLogLevel = 'silent' | 'error' | 'info' | 'debug';
 type EventLevel = Exclude<CalendarLogLevel, 'silent'>;
 type Fields = {
+  stage?: string;
+  configurationFields?: string[];
   worker?: string;
   operationId?: string;
   connectionId?: string;
@@ -81,7 +87,8 @@ const LABELS = new Set([
   'not-active',
   'rate-limited',
 ]);
-const REASONS = new Set([
+const REASONS = new Set<string>([
+  ...CALENDAR_CONFIGURATION_CODES,
   'CRM_EXPORT_REFERENCE_REQUIRED',
   'CRM_EXPORT_FINALIZATION_REVIEW',
   'CRM_EXPORT_CAPABILITIES_UNAVAILABLE',
@@ -191,7 +198,18 @@ export const createCalendarLogger = (
 ) => ({
   event: (severity: EventLevel, event: string, fields: Fields = {}): void => {
     if (PRIORITY[severity] > PRIORITY[level] || !EVENTS.has(event)) return;
-    const safe: Record<string, string | number> = {};
+    const safe: Record<string, string | number | string[]> = {};
+    if (
+      fields.stage &&
+      ['configuration', 'database', 'http', 'workers'].includes(fields.stage)
+    )
+      safe.stage = fields.stage;
+    if (Array.isArray(fields.configurationFields)) {
+      const allowed = new Set<string>(CALENDAR_CONFIGURATION_FIELDS);
+      safe.configurationFields = fields.configurationFields
+        .filter((field) => typeof field === 'string' && allowed.has(field))
+        .slice(0, 30);
+    }
     for (const key of [
       'operationId',
       'connectionId',

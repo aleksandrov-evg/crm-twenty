@@ -15,15 +15,16 @@ export const startCalendarPolling = (
       const started = performance.now();
       try {
         const result = await poller.runOnce();
-        calendarLogger.event(
-          result === 'failed' ? 'error' : 'debug',
-          'worker.cycle',
-          {
-            worker,
-            result: typeof result === 'string' ? result : 'redacted',
-            durationMs: Math.round(performance.now() - started),
-          },
-        );
+        if (result !== 'idle')
+          calendarLogger.event(
+            result === 'failed' ? 'error' : 'debug',
+            'worker.cycle',
+            {
+              worker,
+              result: typeof result === 'string' ? result : 'redacted',
+              durationMs: Math.round(performance.now() - started),
+            },
+          );
       } catch (error: unknown) {
         calendarLogger.event('error', 'worker.failed', {
           worker,
