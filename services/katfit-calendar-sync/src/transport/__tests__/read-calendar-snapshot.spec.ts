@@ -1,3 +1,4 @@
+import { calendarLogger } from '../../observability/calendar-logger';
 import { readCalendarSnapshot } from '../read-calendar-snapshot';
 
 const calendarUrl = 'https://caldav.yandex.ru/calendars/test/classes/';
@@ -13,6 +14,7 @@ describe('readCalendarSnapshot', () => {
     ReturnType<typeof globalThis.fetch>,
     Parameters<typeof globalThis.fetch>
   >();
+  afterEach(() => jest.restoreAllMocks());
   beforeEach(() => {
     fetch.mockReset();
   });
@@ -33,6 +35,22 @@ describe('readCalendarSnapshot', () => {
     expect(fetch.mock.calls[0][1]?.method).toBe('REPORT');
     expect(fetch.mock.calls[0][1]?.body).not.toContain('time-range');
     expect(fetch.mock.calls[0][1]?.body).not.toContain('expand');
+  });
+
+  it.each([
+    [multistatus(member('one.ics', 'W/&quot;weak&quot;')), 207, 'CALDAV_SNAPSHOT_WEAK_ETAG'],
+    [multistatus(member('../outside.ics')), 207, 'CALDAV_SNAPSHOT_RESOURCE_URL'],
+    ['<html>private-content</html>', 207, 'CALDAV_SNAPSHOT_MULTISTATUS'],
+    ['private-content', 404, 'CALDAV_SNAPSHOT_HTTP_STATUS'],
+  ])('logs a safe diagnostic for rejected responses', async (body, status, reason) => {
+    const event = jest.spyOn(calendarLogger, 'event').mockImplementation();
+    respond(String(body), Number(status));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
+    expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.rejected', {
+      reason, httpStatus: status,
+    });
+    expect(JSON.stringify(event.mock.calls)).not.toContain('private-content');
+    expect(JSON.stringify(event.mock.calls)).not.toContain(calendarUrl);
   });
 
   it('accepts a valid empty inventory', async () => {

@@ -802,3 +802,9 @@ calendar count, or `auth-required`, `forbidden`, `unavailable`, or
 does not block HTTP startup or enable synchronization. It creates no connection
 and makes no calendar or CRM changes. Connection registration and activation
 remain separate steps. No calendar names, URLs, or credentials are logged.
+
+Rejected calendar snapshots emit `calendar.snapshot.rejected` with an allowlisted
+`CALDAV_SNAPSHOT_*` reason and HTTP status (when available). The reason identifies
+HTTP/content-type, XML/multistatus, member/property status, resource URL, duplicate
+URL, ETag, or iCalendar validation failures without logging response bodies.
+These diagnostics do not relax validation or treat an invalid inventory as empty.

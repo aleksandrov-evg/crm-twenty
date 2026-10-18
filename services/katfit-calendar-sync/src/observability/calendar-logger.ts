@@ -15,6 +15,7 @@ type Fields = {
   reason?: string;
   count?: number;
   durationMs?: number;
+  httpStatus?: number;
 };
 const PRIORITY = { silent: 0, error: 1, info: 2, debug: 3 };
 const IDENTIFIER =
@@ -39,6 +40,7 @@ const EVENTS = new Set([
   'service.stopped',
   'service.failed',
   'calendar.snapshot',
+  'calendar.snapshot.rejected',
   'crm.creation',
   'calendar.description',
   'calendar.schedule',
@@ -93,6 +95,24 @@ const LABELS = new Set([
 ]);
 const REASONS = new Set<string>([
   ...CALENDAR_CONFIGURATION_CODES,
+  'CALDAV_SNAPSHOT_TARGET',
+  'CALDAV_SNAPSHOT_RESPONSE_BODY',
+  'CALDAV_SNAPSHOT_HTTP_STATUS',
+  'CALDAV_SNAPSHOT_CONTENT_TYPE',
+  'CALDAV_SNAPSHOT_UNSAFE_XML',
+  'CALDAV_SNAPSHOT_XML',
+  'CALDAV_SNAPSHOT_MULTISTATUS',
+  'CALDAV_SNAPSHOT_RESOURCE_LIMIT',
+  'CALDAV_SNAPSHOT_MEMBER',
+  'CALDAV_SNAPSHOT_MEMBER_STATUS',
+  'CALDAV_SNAPSHOT_PROPERTY_STATUS',
+  'CALDAV_SNAPSHOT_RESOURCE_URL',
+  'CALDAV_SNAPSHOT_ETAG_PROPERTY',
+  'CALDAV_SNAPSHOT_DATA_PROPERTY',
+  'CALDAV_SNAPSHOT_DUPLICATE_URL',
+  'CALDAV_SNAPSHOT_WEAK_ETAG',
+  'CALDAV_SNAPSHOT_ICALENDAR',
+
   'CALDAV_CREDENTIALS_REQUIRED',
   'CRM_EXPORT_REFERENCE_REQUIRED',
   'CRM_EXPORT_FINALIZATION_REVIEW',
@@ -234,6 +254,9 @@ export const createCalendarLogger = (
             ? value
             : 'redacted';
     }
+    const httpStatus = fields.httpStatus;
+    if (typeof httpStatus === 'number' && Number.isInteger(httpStatus) && httpStatus >= 100 && httpStatus <= 599)
+      safe.httpStatus = httpStatus;
     for (const key of ['count', 'durationMs'] as const) {
       const value = fields[key];
       if (typeof value === 'number' && Number.isFinite(value) && value >= 0)
