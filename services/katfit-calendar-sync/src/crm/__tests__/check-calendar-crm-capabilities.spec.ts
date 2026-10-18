@@ -53,6 +53,19 @@ describe('CRM capability check', () => {
         .every(([, options]) => options?.method === 'GET'),
     ).toBe(true);
   });
+  it('uses a valid UUID for the audit read probe accepted by Twenty', async () => {
+    const { check, request } = setup();
+    await check();
+    const auditRequest = request.mock.calls.find(([url]) =>
+      new URL(String(url)).pathname === '/rest/studioEvents',
+    );
+    expect(auditRequest).toBeDefined();
+    const filter = new URL(String(auditRequest?.[0])).searchParams.get('filter');
+    expect(filter).toBe('id[eq]:00000000-0000-4000-8000-000000000000');
+    expect(filter?.slice('id[eq]:'.length)).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+  });
   it('binds readiness to origin, workspace and token', () => {
     const { workspaceId } = setup();
     const binding = calendarCrmBinding(CRM_TEST_CONFIGURATION, workspaceId);
