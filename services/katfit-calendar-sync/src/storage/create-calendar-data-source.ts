@@ -1,3 +1,4 @@
+import { CreateCrmExportIntent1792251000000 } from '../migrations/1792251000000-create-crm-export-intent';
 import 'reflect-metadata';
 
 import { DataSource } from 'typeorm';
@@ -63,6 +64,7 @@ export const createCalendarDataSource = (
       CreateCalendarCancellationReview1792248000000,
       ObserveCalendarCancellationOutcome1792249000000,
       CreateCancellationExecution1792250000000,
+      CreateCrmExportIntent1792251000000,
     ],
     entities: [],
     logging: false,

@@ -1116,6 +1116,7 @@ describeWithDatabase(
       await source.undoLastMigration({ transaction: 'all' });
       await source.undoLastMigration({ transaction: 'all' });
       await source.undoLastMigration({ transaction: 'all' });
+      await source.undoLastMigration({ transaction: 'all' });
       await expect(
         source.query(
           'SELECT "nextScheduleCheckAt" FROM calendar_sync."calendarSessionLink"',

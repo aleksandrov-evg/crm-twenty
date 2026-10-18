@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { calendarCrmRecordingKeySchema } from './calendar-crm-session-reference';
+
 import {
   createCalendarCrmBaseUrl,
   type CalendarCrmConfiguration,
@@ -8,7 +10,7 @@ import {
 import { SESSION_FORMATS } from '../domain/prepare-calendar-session';
 import { readBoundedBody } from '../transport/read-bounded-body';
 
-const sessionSchema = z.object({
+export const calendarCrmSessionSchema = z.object({
   id: z.uuid(),
   recordingKey: z.string(),
   name: z.string(),
@@ -20,11 +22,11 @@ const sessionSchema = z.object({
   creationRequest: z.string().nullable().optional(),
 });
 const responseSchema = z.object({
-  data: z.object({ classSessions: z.array(sessionSchema).max(2) }),
+  data: z.object({ classSessions: z.array(calendarCrmSessionSchema).max(2) }),
   pageInfo: z.object({ hasNextPage: z.boolean() }),
 });
 
-export type CalendarCrmSession = z.infer<typeof sessionSchema>;
+export type CalendarCrmSession = z.infer<typeof calendarCrmSessionSchema>;
 export type CalendarSessionLookup =
   | { status: 'matched'; session: CalendarCrmSession }
   | {
@@ -44,8 +46,8 @@ export const createCalendarSessionLookup = (
   const request = configuration.fetch ?? fetch;
 
   return async (recordingKey) => {
-    // Only service-generated keys enter the filter grammar.
-    if (!/^session-create:calendar-create:[a-f0-9]{64}$/.test(recordingKey))
+    // Both origin namespaces are validated before entering the filter grammar.
+    if (!calendarCrmRecordingKeySchema.safeParse(recordingKey).success)
       throw new Error('INVALID_CALENDAR_RECORDING_KEY');
     const url = new URL('/rest/classSessions', baseUrl);
     url.searchParams.set('limit', '2');

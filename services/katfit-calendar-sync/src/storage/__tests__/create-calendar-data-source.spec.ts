@@ -26,7 +26,7 @@ describe('createCalendarDataSource', () => {
       migrationsTableName: 'migrations',
       entities: [],
     });
-    expect(source.options.migrations).toHaveLength(14);
+    expect(source.options.migrations).toHaveLength(15);
     expect(source.isInitialized).toBe(false);
   });
 });

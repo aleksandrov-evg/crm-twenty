@@ -319,3 +319,18 @@ test('a changed claim prevents reset and no business operation starts', async ()
   assert.equal(fake.operations[0].state, 'NEEDS_REVIEW');
   assert.equal(fake.bookingWrites, 0);
 });
+
+test('completes and replays when Twenty returns empty journal text as strings', async () => {
+  const fake = new FakeGatewayClient();
+  fake.emptyTextAsString = true;
+  assert.deepEqual(
+    await createGuardedRegularBooking(input, fake.client(), execute),
+    { success: true, bookingId, duplicate: false },
+  );
+  assert.equal(fake.token, null);
+  assert.deepEqual(
+    await createGuardedRegularBooking(input, fake.client(), execute),
+    { success: true, bookingId, duplicate: true },
+  );
+  assert.equal(fake.bookingWrites, 1);
+});

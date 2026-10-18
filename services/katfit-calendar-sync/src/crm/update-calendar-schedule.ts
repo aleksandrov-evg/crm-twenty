@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { z } from 'zod';
 
+import { calendarCrmRecordingKeySchema } from './calendar-crm-session-reference';
 import { createCalendarScheduleCapabilityCheck } from './check-calendar-schedule-capabilities';
 
 import { SESSION_FORMATS } from '../domain/prepare-calendar-session';
@@ -31,9 +32,7 @@ const scheduleSchema = z
 export const calendarScheduleUpdateSchema = z.strictObject({
   expected: z.strictObject({
     id: z.uuid(),
-    recordingKey: z
-      .string()
-      .regex(/^session-create:calendar-create:[a-f0-9]{64}$/),
+    recordingKey: calendarCrmRecordingKeySchema,
     name: z.string().min(1).max(200),
     startsAt: instantSchema,
     endsAt: instantSchema,

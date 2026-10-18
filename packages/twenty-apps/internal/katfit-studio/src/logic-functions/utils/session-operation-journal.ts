@@ -85,7 +85,12 @@ export class SessionOperationJournal {
         edge.node.operationKey !== operationKey
       )
         return 'unconfirmed';
-      return edge.node;
+      // Twenty exposes empty nullable TEXT fields as empty strings.
+      return {
+        ...edge.node,
+        ownerToken: edge.node.ownerToken === '' ? null : edge.node.ownerToken,
+        result: edge.node.result === '' ? null : edge.node.result,
+      };
     } catch {
       return 'unconfirmed';
     }

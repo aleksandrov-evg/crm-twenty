@@ -65,7 +65,7 @@ export const inspectSessionMutationLock = async (
     return {
       status: 'read',
       sessionStatus: edge.node.status,
-      token: edge.node.mutationLock,
+      token: edge.node.mutationLock === '' ? null : edge.node.mutationLock,
     };
   } catch {
     return { status: 'unconfirmed' };
@@ -190,7 +190,8 @@ export const releaseSessionMutationLock = async (
       if (
         result.updateClassSessions.length === 1 &&
         isSession(result.updateClassSessions[0], lock.classSessionId) &&
-        result.updateClassSessions[0].mutationLock === null
+        (result.updateClassSessions[0].mutationLock === null ||
+          result.updateClassSessions[0].mutationLock === '')
       )
         return 'released';
     }

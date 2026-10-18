@@ -1,3 +1,4 @@
+import { configureCalendarCrmExport } from './exporting/configure-calendar-crm-export';
 import { describeCalendarDatabaseError } from './storage/describe-calendar-database-error';
 import {
   calendarLogger,
@@ -23,6 +24,7 @@ import { createCalendarDataSource } from './storage/create-calendar-data-source'
 
 const start = async (): Promise<void> => {
   const logLevel = configureCalendarLogger(process.env);
+  const crmExport = configureCalendarCrmExport(process.env);
   const cancellation = configureCalendarCancellation(process.env);
   const schedule = configureCalendarSchedule(process.env);
   const enrichment = configureCalendarEnrichment(process.env);
@@ -131,12 +133,22 @@ const start = async (): Promise<void> => {
             : 'SELECT 1 FROM "calendar_sync"."studioCalendarOperation" LIMIT 1',
         ),
       )
+      .then(() =>
+        source.query(
+          crmExport
+            ? 'SELECT id FROM calendar_sync."calendarCrmExportIntent" LIMIT 1'
+            : 'SELECT 1',
+        ),
+      )
       .then(() => {
         response.writeHead(200, { 'Content-Type': 'application/json' });
         response.end(
           JSON.stringify({
             status: 'ok',
             calendarLogLevel: logLevel,
+            calendarCrmExportPreparationEnabled:
+              crmExport?.preparationEnabled ?? false,
+            calendarCrmExportSendEnabled: crmExport?.sendEnabled ?? false,
             synchronizationEnabled: false,
             calendarCancellationReviewEnabled: cancellation !== null,
             calendarCancellationSendEnabled: false,
@@ -226,11 +238,15 @@ const start = async (): Promise<void> => {
     ? startCalendarPolling(cancellation(source), 'cancellation-review')
     : null;
 
+  const crmExportWorker = crmExport
+    ? startCalendarPolling(crmExport.create(source), 'crm-export')
+    : null;
   calendarLogger.event('info', 'service.started', { result: 'started' });
   const shutdown = (): void => {
     void (async () => {
       await Promise.all([
         polling?.stop(),
+        crmExportWorker?.stop(),
         cancellationWorker?.stop(),
         preview?.stop(),
         crmWorker?.stop(),

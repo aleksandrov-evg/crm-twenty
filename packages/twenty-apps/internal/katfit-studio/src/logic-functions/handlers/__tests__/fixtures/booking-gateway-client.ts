@@ -15,6 +15,7 @@ export const input = {
 export const bookingId = '16ba6f55-90d4-4775-ab0e-de84d7aaf0b1';
 
 export class FakeGatewayClient {
+  emptyTextAsString = false;
   token: string | null = null;
   membershipTokens = new Map<string, string | null>();
   status = 'PLANNED';
@@ -52,7 +53,17 @@ export class FakeGatewayClient {
                 selection.studioSessionOperations.__args.filter,
               ),
             )
-            .map((node) => ({ node: { ...node } })),
+            .map((node) => ({
+              node: {
+                ...node,
+                ownerToken: this.emptyTextAsString
+                  ? (node.ownerToken ?? '')
+                  : node.ownerToken,
+                result: this.emptyTextAsString
+                  ? (node.result ?? '')
+                  : node.result,
+              },
+            })),
           pageInfo: { hasNextPage: false },
         },
       };

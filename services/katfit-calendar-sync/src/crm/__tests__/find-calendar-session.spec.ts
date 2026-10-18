@@ -114,3 +114,16 @@ describe('CRM calendar session lookup', () => {
     ).not.toThrow();
   });
 });
+
+it('finds a CRM-origin UUID recording key without guessing by name or date', async () => {
+  const recordingKey = `session-create:${session.id}`;
+  const crmSession = { ...session, recordingKey };
+  const { lookup, request } = setup(response([crmSession]));
+  expect(await lookup(recordingKey)).toEqual({
+    status: 'matched',
+    session: crmSession,
+  });
+  expect(
+    new URL(String(request.mock.calls[0][0])).searchParams.get('filter'),
+  ).toBe(`recordingKey[eq]:${recordingKey}`);
+});

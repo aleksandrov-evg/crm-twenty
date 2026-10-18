@@ -14,6 +14,9 @@ const PRIORITY = { silent: 0, error: 1, info: 2, debug: 3 };
 const IDENTIFIER =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const EVENTS = new Set([
+  'crm.export.scan',
+  'crm.export.review',
+  'crm.export.confirmed',
   'crm.creation.send_result',
   'crm.creation.confirmed',
   'crm.creation.observed',
@@ -79,6 +82,20 @@ const LABELS = new Set([
   'rate-limited',
 ]);
 const REASONS = new Set([
+  'CRM_EXPORT_REFERENCE_REQUIRED',
+  'CRM_EXPORT_FINALIZATION_REVIEW',
+  'CRM_EXPORT_CAPABILITIES_UNAVAILABLE',
+  'CRM_EXPORT_CRM_UNAVAILABLE',
+  'CRM_EXPORT_SESSION_CHANGED',
+  'CRM_EXPORT_NOT_AUTHORIZED',
+  'CRM_EXPORT_WRITE_UNCONFIRMED',
+  'CRM_EXPORT_WAITING_FOR_POLL',
+  'CRM_EXPORT_UNAVAILABLE',
+  'CRM_EXPORT_CONFLICT',
+  'CRM_EXPORT_AUTH_REQUIRED',
+  'CRM_EXPORT_FORBIDDEN',
+  'CRM_EXPORT_INVALID_COMMAND',
+  'CRM_EXPORT_PAST_SESSION',
   'ENOTFOUND',
   'EAI_AGAIN',
   'ECONNREFUSED',
@@ -143,6 +160,7 @@ const REASONS = new Set([
   'UTC',
 ]);
 const WORKERS = new Set([
+  'crm-export',
   'polling',
   'preview',
   'crm-lookup',

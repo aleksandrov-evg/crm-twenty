@@ -284,3 +284,22 @@ it('accepts a genuine CRM-origin no-op without manufacturing a gateway write', a
   ).toEqual({ status: 'applied' });
   expect(send).not.toHaveBeenCalled();
 });
+
+it('accepts a CRM-origin recording key in the frozen schedule command', async () => {
+  const request = gatewayFetch();
+  expect(
+    await createCalendarScheduleUpdater(
+      { ...configuration, fetch: request },
+      now,
+    )({
+      ...command,
+      expected: {
+        ...command.expected,
+        recordingKey: `session-create:${command.expected.id}`,
+      },
+    }),
+  ).toEqual({ status: 'applied' });
+  expect(
+    JSON.parse(String(request.mock.calls[1][1]?.body)).expected.recordingKey,
+  ).toBe(`session-create:${command.expected.id}`);
+});

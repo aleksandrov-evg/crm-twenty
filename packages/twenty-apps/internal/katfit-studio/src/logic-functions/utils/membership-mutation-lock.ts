@@ -42,7 +42,10 @@ export const inspectMembershipMutationLock = async (
       )
     )
       return { status: 'unconfirmed' };
-    return { status: 'read', token: edge.node.mutationLock };
+    return {
+      status: 'read',
+      token: edge.node.mutationLock === '' ? null : edge.node.mutationLock,
+    };
   } catch {
     return { status: 'unconfirmed' };
   }
