@@ -68,7 +68,9 @@ describe('future CRM sessions reader', () => {
       and: [
         { startsAt: { gt: now().toISOString() } },
         { status: { in: ['PLANNED', 'CONFIRMED'] } },
-        { mutationLock: { is: 'NULL' } },
+        {
+          or: [{ mutationLock: { is: 'NULL' } }, { mutationLock: { eq: '' } }],
+        },
       ],
     });
     expect(
@@ -239,4 +241,25 @@ it('does not expose lock metadata in the public session shape', async () => {
   expect(listed.status === 'read' && listed.sessions[0]).toEqual(session);
   const found = await setup([page([session])]).byId(session.id);
   expect(found.status === 'matched' && found.session).toEqual(session);
+});
+
+it('accepts an empty text field as an unlocked session in both readers', async () => {
+  const listed = await setup([page([{ ...session, mutationLock: '' }])]).read();
+  expect(listed).toEqual({
+    status: 'read',
+    sessions: [session],
+    needsReview: [],
+  });
+  const found = await setup([page([{ ...session, mutationLock: '' }])]).byId(
+    session.id,
+  );
+  expect(found).toEqual({ status: 'matched', session });
+});
+it('does not treat whitespace or another nonempty owner as a free lock', async () => {
+  expect(
+    await setup([page([{ ...session, mutationLock: ' ' }])]).read(),
+  ).toEqual({ status: 'invalid-response' });
+  expect(
+    await setup([page([{ ...session, mutationLock: ' ' }])]).byId(session.id),
+  ).toEqual({ status: 'unavailable' });
 });

@@ -59,7 +59,7 @@ const isFutureEditable = (
   const minutes =
     (Date.parse(session.endsAt) - Date.parse(session.startsAt)) / 60000;
   return (
-    session.mutationLock === null &&
+    (session.mutationLock === null || session.mutationLock === '') &&
     Number.isFinite(now.getTime()) &&
     Date.parse(session.startsAt) > now.getTime() &&
     ['PLANNED', 'CONFIRMED'].includes(session.status) &&
@@ -98,7 +98,12 @@ export const createCalendarFutureSessionsReader = (
               and: [
                 { startsAt: { gt: startedAt.toISOString() } },
                 { status: { in: ['PLANNED', 'CONFIRMED'] } },
-                { mutationLock: { is: 'NULL' } },
+                {
+                  or: [
+                    { mutationLock: { is: 'NULL' } },
+                    { mutationLock: { eq: '' } },
+                  ],
+                },
               ],
             },
             after,
@@ -200,7 +205,11 @@ export const createCalendarSessionByIdLookup = (
       )
     )
       return { status: 'invalid-response' };
-    if (connection.edges.some(({ node }) => node.mutationLock !== null))
+    if (
+      connection.edges.some(
+        ({ node }) => node.mutationLock !== null && node.mutationLock !== '',
+      )
+    )
       return { status: 'unavailable' };
     if (connection.pageInfo.hasNextPage || connection.edges.length > 1)
       return { status: 'ambiguous' };
