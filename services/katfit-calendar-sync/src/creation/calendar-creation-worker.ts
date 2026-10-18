@@ -1,3 +1,4 @@
+import { calendarLogger } from '../observability/calendar-logger';
 import { type CalendarLiveSourceResult } from './calendar-live-source-guard';
 import { type CalendarCreationLease } from '../storage/calendar-creation-execution.store';
 import { type CalendarSessionCreationResult } from '../crm/create-calendar-session';
@@ -118,6 +119,11 @@ export class CalendarCreationWorker {
             } catch {
               result = { status: 'unconfirmed' };
             }
+            calendarLogger.event('debug', 'crm.creation.send_result', {
+              worker: 'creation',
+              connectionId: lease.connectionId,
+              result: result.status,
+            });
             if (!(await this.store.recordSendResult(lease, result))) {
               stale = true;
               return { status: 'unconfirmed' };
@@ -134,6 +140,24 @@ export class CalendarCreationWorker {
       sourceFailure = await checkSource();
     if (sourceFailure) result = sourceFailure;
     if (stale) return 'stale';
-    return (await this.store.settle(lease, result)) ? 'saved' : 'stale';
+    const saved = await this.store.settle(lease, result);
+    if (saved)
+      calendarLogger.event(
+        result.status === 'confirmed' ? 'info' : 'debug',
+        result.status === 'confirmed'
+          ? 'crm.creation.confirmed'
+          : 'crm.creation.observed',
+        {
+          worker: 'creation',
+          connectionId: lease.connectionId,
+          classSessionId:
+            result.status === 'confirmed' || result.status === 'incomplete'
+              ? result.classSessionId
+              : undefined,
+          result: result.status,
+          reason: result.status === 'needs-review' ? result.reason : undefined,
+        },
+      );
+    return saved ? 'saved' : 'stale';
   }
 }

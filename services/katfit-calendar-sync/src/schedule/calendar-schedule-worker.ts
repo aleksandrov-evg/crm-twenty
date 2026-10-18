@@ -1,3 +1,4 @@
+import { calendarLogger } from '../observability/calendar-logger';
 import { type DataSource } from 'typeorm';
 
 import { type CalendarSessionLookup } from '../crm/find-calendar-session';
@@ -84,6 +85,14 @@ export class CalendarScheduleWorker {
     const payload = parsed.data;
     const review = async (reason: string) => {
       await this.store.review(operation, payload, reason);
+      calendarLogger.event('info', 'schedule.review_required', {
+        worker: 'schedule',
+        operationId: operation.id,
+        connectionId: this.store.scope.connectionId,
+        classSessionId: payload.command.expected.id,
+        result: 'needs-review',
+        reason,
+      });
       return 'saved' as const;
     };
     const same = (left: string, right: string) =>
@@ -127,7 +136,16 @@ export class CalendarScheduleWorker {
       if (!allowed(remote)) return review('CALENDAR_CHANGED_BEFORE_TRANSFER');
       const recovered = await recoverCalendarScheduleUpdate(payload.command, {
         lookup: this.lookup,
-        send: this.send,
+        send: async (command) => {
+          const result = await this.send(command);
+          calendarLogger.event('debug', 'crm.schedule.send_result', {
+            worker: 'schedule',
+            operationId: operation.id,
+            connectionId: this.store.scope.connectionId,
+            result: result.status,
+          });
+          return result;
+        },
         authorizeSend: async () => {
           if (!(await this.store.context(operation, payload))) return false;
           remote = await read();
@@ -195,6 +213,13 @@ export class CalendarScheduleWorker {
         ))
       )
         return retry();
+      calendarLogger.event('info', 'schedule.synchronization.confirmed', {
+        worker: 'schedule',
+        operationId: operation.id,
+        connectionId: this.store.scope.connectionId,
+        classSessionId: session.session.id,
+        result: 'both-sides-verified',
+      });
       return 'saved';
     } catch {
       return retry();

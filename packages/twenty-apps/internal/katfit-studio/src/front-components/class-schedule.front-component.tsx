@@ -14,6 +14,8 @@ import { escapeForIlike } from 'twenty-shared/utils';
 
 import { SESSION_FORMAT_OPTIONS } from 'src/constants/select-options';
 
+import { createIdempotencyKey } from 'src/front-components/utils/create-idempotency-key';
+
 export const CLASS_SCHEDULE_FRONT_COMPONENT_UNIVERSAL_IDENTIFIER =
   '67c2f57f-2d8d-4b61-8a06-93a7f9070d75';
 
@@ -375,7 +377,7 @@ const getNewSessionForm = (startsAt: Date): SessionForm => {
 
   return {
     id: null,
-    operationKey: crypto.randomUUID(),
+    operationKey: createIdempotencyKey(),
     expected: null,
     productId: '',
     name: '',
@@ -388,7 +390,7 @@ const getNewSessionForm = (startsAt: Date): SessionForm => {
 
 const getSessionForm = (session: ClassSession): SessionForm => ({
   id: session.id,
-  operationKey: crypto.randomUUID(),
+  operationKey: createIdempotencyKey(),
   expected: {
     name: session.name,
     startsAt: session.startsAt,
@@ -1013,7 +1015,7 @@ const ClassSchedule = () => {
     try {
       const request = cancellationRequests.current[sessionForm.id] ?? {
         cancelledAt: new Date().toISOString(),
-        idempotencyKey: `schedule-session-cancel:${crypto.randomUUID()}`,
+        idempotencyKey: `schedule-session-cancel:${createIdempotencyKey()}`,
       };
       cancellationRequests.current[sessionForm.id] = request;
       const result = await new RestApiClient().post<{

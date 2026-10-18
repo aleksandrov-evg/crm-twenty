@@ -1,3 +1,4 @@
+import { describeCalendarDatabaseError } from './storage/describe-calendar-database-error';
 import { createCalendarDataSource } from './storage/create-calendar-data-source';
 
 const migrate = async (): Promise<void> => {
@@ -13,7 +14,9 @@ const migrate = async (): Promise<void> => {
   }
 };
 
-void migrate().catch(() => {
-  process.stderr.write('Calendar database migration failed\n');
+void migrate().catch((error: unknown) => {
+  process.stderr.write(
+    `${JSON.stringify({ status: 'failed', operation: 'calendar-database-migrate', ...describeCalendarDatabaseError(error) })}\n`,
+  );
   process.exitCode = 1;
 });

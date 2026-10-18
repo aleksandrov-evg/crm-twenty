@@ -1,3 +1,8 @@
+import { describeCalendarDatabaseError } from './storage/describe-calendar-database-error';
+import {
+  calendarLogger,
+  configureCalendarLogger,
+} from './observability/calendar-logger';
 import { configureCalendarCancellation } from './cancellation/configure-calendar-cancellation';
 import { configureCalendarSchedule } from './schedule/configure-calendar-schedule';
 import { configureCalendarEnrichment } from './enrichment/configure-calendar-enrichment';
@@ -17,6 +22,7 @@ import { CalendarPollStore } from './storage/calendar-poll.store';
 import { createCalendarDataSource } from './storage/create-calendar-data-source';
 
 const start = async (): Promise<void> => {
+  const logLevel = configureCalendarLogger(process.env);
   const cancellation = configureCalendarCancellation(process.env);
   const schedule = configureCalendarSchedule(process.env);
   const enrichment = configureCalendarEnrichment(process.env);
@@ -130,6 +136,7 @@ const start = async (): Promise<void> => {
         response.end(
           JSON.stringify({
             status: 'ok',
+            calendarLogLevel: logLevel,
             synchronizationEnabled: false,
             calendarCancellationReviewEnabled: cancellation !== null,
             calendarCancellationSendEnabled: false,
@@ -171,35 +178,55 @@ const start = async (): Promise<void> => {
     : null;
 
   const preview = previewEnabled
-    ? startCalendarPolling(new CalendarImportPreviewStore(source))
+    ? startCalendarPolling(new CalendarImportPreviewStore(source), 'preview')
     : null;
 
   const crmWorker = createCrmWorker
-    ? startCalendarPolling(createCrmWorker(source))
+    ? startCalendarPolling(createCrmWorker(source), 'crm-lookup')
     : null;
 
   const intentWorker = creationScope
     ? startCalendarPolling(
         new CalendarSessionIntentStore(source, creationScope),
+        'creation-intent',
       )
     : null;
 
   const recoveryWorker = createCreationWorker
-    ? startCalendarPolling(createCreationWorker(source))
+    ? startCalendarPolling(createCreationWorker(source), 'creation')
     : null;
 
   const enrichmentWorkers =
-    enrichment?.create(source).map((worker) => startCalendarPolling(worker)) ??
-    [];
+    enrichment?.create(source).map((worker) =>
+      startCalendarPolling(
+        worker,
+        (
+          {
+            CalendarCreationFinalizer: 'enrichment-finalizer',
+            CalendarDescriptionPreparer: 'description-prepare',
+            CalendarDescriptionPublisher: 'description-publish',
+          } as Record<string, string>
+        )[worker.constructor.name] ?? 'description-prepare',
+      ),
+    ) ?? [];
 
   const scheduleWorkers =
-    schedule?.create(source).map((worker) => startCalendarPolling(worker)) ??
-    [];
+    schedule
+      ?.create(source)
+      .map((worker) =>
+        startCalendarPolling(
+          worker,
+          worker.constructor.name === 'CalendarSchedulePreparer'
+            ? 'schedule-prepare'
+            : 'schedule',
+        ),
+      ) ?? [];
 
   const cancellationWorker = cancellation
-    ? startCalendarPolling(cancellation(source))
+    ? startCalendarPolling(cancellation(source), 'cancellation-review')
     : null;
 
+  calendarLogger.event('info', 'service.started', { result: 'started' });
   const shutdown = (): void => {
     void (async () => {
       await Promise.all([
@@ -214,6 +241,7 @@ const start = async (): Promise<void> => {
       ]);
       await new Promise<void>((resolve) => server.close(() => resolve()));
       await source.destroy();
+      calendarLogger.event('info', 'service.stopped', { result: 'stopped' });
     })().catch(() => {
       process.exitCode = 1;
     });
@@ -223,7 +251,12 @@ const start = async (): Promise<void> => {
   process.once('SIGINT', shutdown);
 };
 
-void start().catch(() => {
-  process.stderr.write('Calendar service startup failed\n');
+void start().catch((error: unknown) => {
+  calendarLogger.event('error', 'service.failed', {
+    reason:
+      error instanceof Error && error.message === 'CALENDAR_LOG_LEVEL_INVALID'
+        ? error.message
+        : describeCalendarDatabaseError(error).code,
+  });
   process.exitCode = 1;
 });

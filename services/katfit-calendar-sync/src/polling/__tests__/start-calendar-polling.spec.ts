@@ -33,3 +33,55 @@ describe('startCalendarPolling', () => {
     expect(poller.runOnce).toHaveBeenCalledTimes(1);
   });
 });
+
+it('reports worker identity and errors without exception contents', async () => {
+  const { calendarLogger } =
+    await import('../../observability/calendar-logger');
+  const event = jest
+    .spyOn(calendarLogger, 'event')
+    .mockImplementation(() => {});
+  try {
+    const loop = startCalendarPolling(
+      {
+        runOnce: async () => {
+          throw Error('password=private');
+        },
+      },
+      'schedule',
+    );
+    await loop.stop();
+    expect(event).toHaveBeenCalledWith(
+      'error',
+      'worker.failed',
+      expect.objectContaining({
+        worker: 'schedule',
+        reason: 'DATABASE_ERROR_UNCLASSIFIED',
+      }),
+    );
+    expect(JSON.stringify(event.mock.calls)).not.toContain('private');
+  } finally {
+    event.mockRestore();
+  }
+});
+it('reports debug cycles without passing raw result objects to logs', async () => {
+  const { calendarLogger } =
+    await import('../../observability/calendar-logger');
+  const event = jest
+    .spyOn(calendarLogger, 'event')
+    .mockImplementation(() => {});
+  try {
+    const loop = startCalendarPolling(
+      { runOnce: async () => ({ secret: 'private' }) },
+      'preview',
+    );
+    await loop.stop();
+    expect(event).toHaveBeenCalledWith(
+      'debug',
+      'worker.cycle',
+      expect.objectContaining({ worker: 'preview', result: 'redacted' }),
+    );
+    expect(JSON.stringify(event.mock.calls)).not.toContain('private');
+  } finally {
+    event.mockRestore();
+  }
+});

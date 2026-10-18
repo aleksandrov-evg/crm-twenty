@@ -1,3 +1,4 @@
+import { calendarLogger } from '../observability/calendar-logger';
 import { type CalendarPollStore } from '../storage/calendar-poll.store';
 import { createYandexCalDavTransport } from '../transport/create-yandex-caldav-transport';
 import {
@@ -32,15 +33,33 @@ export class CalendarPoller {
       const credentials = await this.store.readCredentials(lease);
       if (!credentials) return 'stale';
       const snapshot = await this.reader(lease.calendarUrl, credentials);
-      if (snapshot.status === 'snapshot')
-        return (await this.store.commitSnapshot(lease, snapshot.resources))
-          ? 'saved'
-          : 'stale';
-      return (await this.store.fail(lease, snapshot.status))
-        ? 'failed'
-        : 'stale';
+      if (snapshot.status === 'snapshot') {
+        const committed = await this.store.commitSnapshot(
+          lease,
+          snapshot.resources,
+        );
+        calendarLogger.event('debug', 'calendar.snapshot', {
+          connectionId: lease.id,
+          result: committed ? 'saved' : 'stale',
+          count: snapshot.resources.length,
+        });
+        return committed ? 'saved' : 'stale';
+      }
+      const saved = await this.store.fail(lease, snapshot.status);
+      calendarLogger.event('error', 'calendar.snapshot', {
+        connectionId: lease.id,
+        result: saved ? 'failed' : 'stale',
+        reason: snapshot.status,
+      });
+      return saved ? 'failed' : 'stale';
     } catch {
-      return (await this.store.fail(lease, 'unavailable')) ? 'failed' : 'stale';
+      const saved = await this.store.fail(lease, 'unavailable');
+      calendarLogger.event('error', 'calendar.snapshot', {
+        connectionId: lease.id,
+        result: saved ? 'failed' : 'stale',
+        reason: 'unavailable',
+      });
+      return saved ? 'failed' : 'stale';
     }
   }
 }

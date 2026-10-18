@@ -1,3 +1,4 @@
+import { calendarLogger } from '../observability/calendar-logger';
 import { createHash } from 'node:crypto';
 
 import { type DataSource } from 'typeorm';
@@ -101,13 +102,33 @@ export class CalendarDescriptionPublisher {
       id: operation.id,
       leaseGeneration: operation.leaseGeneration,
     };
+    let writeAttempted = false;
     const settle = async (
       state: 'SUCCEEDED' | 'CONFLICT' | 'FAILED' | 'SUPERSEDED',
       errorCode?: string,
-    ) =>
-      (await this.operations.settle(lease, { state, errorCode }))
-        ? ('saved' as const)
-        : ('stale' as const);
+    ) => {
+      const saved = await this.operations.settle(lease, { state, errorCode });
+      if (saved)
+        calendarLogger.event(
+          state === 'SUCCEEDED' ? 'info' : 'debug',
+          state === 'SUCCEEDED'
+            ? 'caldav.description.confirmed'
+            : 'caldav.description.review',
+          {
+            worker: 'description-publisher',
+            operationId: operation.id,
+            connectionId: this.scope.connectionId,
+            result:
+              state === 'SUCCEEDED'
+                ? writeAttempted
+                  ? 'write-verified'
+                  : 'already-matching'
+                : state,
+            reason: errorCode,
+          },
+        );
+      return saved ? ('saved' as const) : ('stale' as const);
+    };
     const retry = async () =>
       (await this.operations.settle(lease, {
         state: 'RETRY',
@@ -199,6 +220,7 @@ export class CalendarDescriptionPublisher {
         return settle('CONFLICT', 'SCHEDULE_CHANGED_BEFORE_ENRICHMENT');
       if (!(await this.context(operation, payload)))
         return settle('SUPERSEDED', 'PUBLICATION_CONTEXT_CHANGED');
+      writeAttempted = true;
       const written = await writeCalDavResource({
         calendarUrl: payload.calendarUrl,
         resourceUrl: payload.resourceUrl,

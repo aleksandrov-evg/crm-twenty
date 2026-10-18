@@ -78,6 +78,7 @@ YANDEX_CALDAV_USERNAME=<логин Яндекса>
 YANDEX_CALDAV_APP_PASSWORD=<пароль приложения>
 CALENDAR_TIMEZONE=Europe/Moscow
 CALENDAR_HTTP_PORT=3100
+CALENDAR_LOG_LEVEL=info
 ```
 
 Все флаги `*_ENABLED` пока оставьте `false`. `YANDEX_CALDAV_CALENDAR_URL` заполните после discovery.
@@ -249,3 +250,5 @@ docker compose down
 Полная приёмка и откат: [release checklist](studio-calendar-release-checklist.ru.md).
 
 Если уже использовался прежний Compose с контейнером `database`, сначала перенесите его базу через `pg_dump`/`pg_restore`, сохранив идентификаторы и прежний ключ шифрования. Не удаляйте старый контейнер/том до проверки переноса. Простая смена URL на пустую базу не переносит подключения и журнал операций.
+
+Для диагностики фонового обмена задайте `CALENDAR_LOG_LEVEL=debug` и пересоздайте сервис (в Dokploy — Deploy). Подтверждённые действия имеют отдельные JSON-события; `worker.cycle` с `saved` отражает локальную обработку. После диагностики верните `info`.
