@@ -1,0 +1,104 @@
+import { readCalendarSnapshot } from '../read-calendar-snapshot';
+
+const calendarUrl = 'https://caldav.yandex.ru/calendars/test/classes/';
+const calendarData =
+  'BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:one\r\nSUMMARY:Класс\r\n продолжение\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n';
+const member = (href = 'one.ics', etag = '&quot;v1&quot;', status = '200 OK') =>
+  `<d:response><d:href>${href}</d:href><d:propstat><d:prop><d:getetag>${etag}</d:getetag><c:calendar-data><![CDATA[${calendarData}]]></c:calendar-data></d:prop><d:status>HTTP/1.1 ${status}</d:status></d:propstat></d:response>`;
+const multistatus = (body: string) =>
+  `<d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">${body}</d:multistatus>`;
+
+describe('readCalendarSnapshot', () => {
+  const fetch = jest.fn<
+    ReturnType<typeof globalThis.fetch>,
+    Parameters<typeof globalThis.fetch>
+  >();
+  beforeEach(() => {
+    fetch.mockReset();
+  });
+  const respond = (body: string, status = 207) =>
+    fetch.mockResolvedValue(
+      new Response(body, {
+        status,
+        headers: { 'Content-Type': 'application/xml' },
+      }),
+    );
+
+  it('reads unexpanded raw resources and strong ETags without writes', async () => {
+    respond(multistatus(member()));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
+      status: 'snapshot',
+      resources: [{ url: `${calendarUrl}one.ics`, etag: '"v1"', calendarData }],
+    });
+    expect(fetch.mock.calls[0][1]?.method).toBe('REPORT');
+    expect(fetch.mock.calls[0][1]?.body).not.toContain('time-range');
+    expect(fetch.mock.calls[0][1]?.body).not.toContain('expand');
+  });
+
+  it('accepts a valid empty inventory', async () => {
+    respond(multistatus(''));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
+      status: 'snapshot',
+      resources: [],
+    });
+  });
+
+  it.each([
+    member('one.ics') + member('two.ics', '&quot;v2&quot;', '403 Forbidden'),
+    member('one.ics') + member('one.ics'),
+    member('../outside.ics'),
+    member('https://other.example/one.ics'),
+    member('nested%2fone.ics'),
+    member('one.ics', 'W/&quot;weak&quot;'),
+  ])(
+    'rejects the entire partial, duplicate or unsafe inventory',
+    async (body) => {
+      respond(multistatus(body));
+      expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
+        status: 'invalid-snapshot',
+      });
+    },
+  );
+
+  it.each([
+    '<broken>',
+    '<html>not a calendar</html>',
+    '<!DOCTYPE test><d:multistatus xmlns:d="DAV:"/>',
+  ])(
+    'does not interpret malformed or unsafe XML as empty: %s',
+    async (body) => {
+      respond(body);
+      expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
+        status: 'invalid-snapshot',
+      });
+    },
+  );
+
+  it.each([
+    [401, 'auth-required'],
+    [403, 'forbidden'],
+    [429, 'unavailable'],
+    [503, 'unavailable'],
+    [404, 'invalid-snapshot'],
+    [200, 'invalid-snapshot'],
+  ] as const)(
+    'classifies HTTP %s without interpreting it as deletion',
+    async (status, expected) => {
+      respond('', status);
+      expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
+        status: expected,
+      });
+    },
+  );
+
+  it('rejects another server before the request and distinguishes network failure', async () => {
+    expect(await readCalendarSnapshot('https://other.example/', fetch)).toEqual(
+      { status: 'invalid-snapshot' },
+    );
+    expect(fetch).not.toHaveBeenCalled();
+    fetch.mockRejectedValue(new Error('network failure'));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
+      status: 'unavailable',
+    });
+  });
+});

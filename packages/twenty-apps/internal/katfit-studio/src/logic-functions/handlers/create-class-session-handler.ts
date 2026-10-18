@@ -1,5 +1,8 @@
 import { CoreApiClient } from 'twenty-client-sdk/core';
 
+import { coordinateSessionParticipants } from 'src/logic-functions/utils/coordinate-session-participants';
+import { isStudioRecordIdentifier } from 'src/logic-functions/utils/session-mutation-lock';
+
 import { SESSION_FORMAT_OPTIONS } from 'src/constants/select-options';
 import { createRegularBooking } from 'src/logic-functions/handlers/create-regular-booking-handler';
 import { recordPastAttendance } from 'src/logic-functions/handlers/record-past-attendance-handler';
@@ -26,7 +29,7 @@ type Session = {
   status: string;
   creationRequest?: string | null;
 };
-type CreateClassSessionResult =
+export type CreateClassSessionResult =
   | { success: true; classSessionId: string; duplicate: boolean }
   | { success: false; code: string; message: string; status: number };
 const fail = (
@@ -49,6 +52,7 @@ export const createClassSession = async (
   raw: CreateClassSessionInput,
   client = new CoreApiClient(),
   now = new Date(),
+  options: { coordinateParticipants?: boolean } = {},
 ): Promise<CreateClassSessionResult> => {
   const input = {
     ...raw,
@@ -74,6 +78,18 @@ export const createClassSession = async (
     return fail(
       'INVALID_PARTICIPANTS',
       'Проверьте участников: дубли и превышение вместимости недопустимы.',
+    );
+  if (
+    options.coordinateParticipants &&
+    participants.some(
+      (participant) =>
+        !isStudioRecordIdentifier(participant.personId) ||
+        !isStudioRecordIdentifier(participant.membershipId),
+    )
+  )
+    return fail(
+      'INVALID_PARTICIPANTS',
+      'Проверьте идентификаторы клиентов и пакетов.',
     );
   if (
     input.sessionFormat === 'PERSONAL_EQUIPMENT' &&
@@ -366,59 +382,85 @@ export const createClassSession = async (
         'Журнал создания не подтверждён. Повторите с прежним ключом.',
       );
   }
-  const attendanceInputs = participants.map((participant) => ({
-    ...participant,
-    startsAt,
-    endsAt,
-    existingClassSessionId: session.id,
-    reason: input.attendanceReason?.trim() ?? '',
-    source: 'ADMIN' as const,
-    idempotencyKey: `${input.idempotencyKey}:participant:${participant.personId}`,
-  }));
-  if (input.status === 'COMPLETED') {
-    for (const attendance of attendanceInputs) {
-      const preview = await recordPastAttendance(
-        { ...attendance, previewOnly: true },
-        { userWorkspaceId: null },
-        client,
-      );
-      if (!preview.success)
-        return fail(
-          preview.code,
-          `Тренировка сохранена. ${preview.message} Повторите весь запрос с прежним ключом после проверки CRM.`,
-          preview.status,
+  const classSessionId = session.id;
+  const applyParticipants = async (
+    participantClient: CoreApiClient,
+  ): Promise<CreateClassSessionResult> => {
+    const attendanceInputs = participants.map((participant) => ({
+      ...participant,
+      startsAt,
+      endsAt,
+      existingClassSessionId: classSessionId,
+      reason: input.attendanceReason?.trim() ?? '',
+      source: 'ADMIN' as const,
+      idempotencyKey: `${input.idempotencyKey}:participant:${participant.personId}`,
+    }));
+    if (input.status === 'COMPLETED') {
+      for (const attendance of attendanceInputs) {
+        const preview = await recordPastAttendance(
+          { ...attendance, previewOnly: true },
+          { userWorkspaceId: null },
+          participantClient,
         );
+        if (!preview.success)
+          return fail(
+            preview.code,
+            `Тренировка сохранена. ${preview.message} Проверьте журнал операции перед повтором.`,
+            preview.status,
+          );
+      }
     }
-  }
-  for (const [index, participant] of participants.entries()) {
-    if (input.status === 'PLANNED') {
-      const booking = await createRegularBooking(
-        {
-          ...participant,
-          classSessionId: session.id,
-          idempotencyKey: attendanceInputs[index].idempotencyKey,
-        },
-        client,
-      );
-      if (!booking.success)
-        return fail(
-          booking.code,
-          `Тренировка сохранена, добавление участников не завершено. ${booking.message} Повторите прежний запрос.`,
-          booking.status,
+    for (const [index, participant] of participants.entries()) {
+      if (input.status === 'PLANNED') {
+        const booking = await createRegularBooking(
+          {
+            ...participant,
+            classSessionId,
+            idempotencyKey: attendanceInputs[index].idempotencyKey,
+          },
+          participantClient,
         );
-    } else {
-      const attendance = await recordPastAttendance(
-        attendanceInputs[index],
-        { userWorkspaceId: null },
-        client,
-      );
-      if (!attendance.success || !('bookingId' in attendance))
-        return fail(
-          'ATTENDANCE_INCOMPLETE',
-          'Внесение посещений не завершено. Проверьте CRM и повторите прежний запрос.',
-          409,
+        if (!booking.success)
+          return fail(
+            booking.code,
+            `Тренировка сохранена, добавление участников не завершено. ${booking.message} Проверьте журнал операции перед повтором.`,
+            booking.status,
+          );
+      } else {
+        const attendance = await recordPastAttendance(
+          attendanceInputs[index],
+          { userWorkspaceId: null },
+          participantClient,
         );
+        if (!attendance.success || !('bookingId' in attendance))
+          return fail(
+            'ATTENDANCE_INCOMPLETE',
+            'Внесение посещений не завершено. Проверьте CRM и журнал операции перед повтором.',
+            409,
+          );
+      }
     }
+    return { success: true, classSessionId, duplicate: false };
+  };
+  if (options.coordinateParticipants && participants.length) {
+    if (input.status !== 'PLANNED' && input.status !== 'COMPLETED')
+      return fail(
+        'PARTICIPANTS_NOT_SUPPORTED',
+        'Участники недоступны для этого статуса.',
+      );
+    return coordinateSessionParticipants(
+      {
+        classSessionId,
+        idempotencyKey: input.idempotencyKey,
+        status: input.status,
+        creationRequest,
+        membershipIds: participants.map((participant) => participant.membershipId),
+      },
+      client,
+      applyParticipants,
+    );
   }
+  const applied = await applyParticipants(client);
+  if (!applied.success) return applied;
   return { success: true, classSessionId: session.id, duplicate };
 };

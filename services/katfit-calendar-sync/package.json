@@ -1,0 +1,47 @@
+{
+  "name": "@katfit/calendar-sync",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "test": "jest --config jest.config.cjs --runInBand",
+    "start": "node dist/main.js",
+    "migrate": "node dist/migrate.js",
+    "discover": "node dist/discover.js",
+    "connect": "node dist/connect.js",
+    "preview": "node dist/preview.js",
+    "inspect-creation": "node dist/inspect-creation.js",
+    "check-crm": "node dist/check-crm.js",
+    "activate": "node dist/activate.js",
+    "pause": "node dist/pause.js",
+    "review-schedule": "node dist/review-schedule.js",
+    "review-cancellations": "node dist/review-cancellations.js",
+    "execute-cancellation": "node dist/execute-cancellation.js"
+  },
+  "dependencies": {
+    "@js-temporal/polyfill": "0.5.1",
+    "@sniptt/guards": "0.2.0",
+    "ical.js": "2.2.1",
+    "ipaddr.js": "2.2.0",
+    "pg": "8.12.0",
+    "reflect-metadata": "0.2.2",
+    "tsdav": "2.3.2",
+    "typeorm": "0.3.31",
+    "undici": "7.29.0",
+    "xml-js": "1.6.11",
+    "zod": "4.1.11"
+  },
+  "devDependencies": {
+    "@swc/core": "1.15.18",
+    "@swc/jest": "0.2.39",
+    "@types/jest": "29.5.14",
+    "@types/node": "24.3.1",
+    "jest": "29.7.0",
+    "typescript": "5.9.3"
+  }
+}

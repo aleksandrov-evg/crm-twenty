@@ -1,0 +1,46 @@
+name: katfit-calendar-sync
+
+services:
+  migrate:
+    build: .
+    command: ["node", "dist/migrate.js"]
+    environment:
+      CALENDAR_DATABASE_URL: ${CALENDAR_DATABASE_URL:?Set CALENDAR_DATABASE_URL to a separate integration database}
+    restart: "no"
+
+  service:
+    build: .
+    environment:
+      CALENDAR_DATABASE_URL: ${CALENDAR_DATABASE_URL:?Set CALENDAR_DATABASE_URL to a separate integration database}
+      PORT: 3100
+      CALENDAR_CANCELLATION_REVIEW_ENABLED: ${CALENDAR_CANCELLATION_REVIEW_ENABLED:-false}
+      CALENDAR_SCHEDULE_PREPARATION_ENABLED: ${CALENDAR_SCHEDULE_PREPARATION_ENABLED:-false}
+      CALENDAR_SCHEDULE_SEND_ENABLED: ${CALENDAR_SCHEDULE_SEND_ENABLED:-false}
+      CALENDAR_DESCRIPTION_PREPARATION_ENABLED: ${CALENDAR_DESCRIPTION_PREPARATION_ENABLED:-false}
+      CALENDAR_EXPORT_SEND_ENABLED: ${CALENDAR_EXPORT_SEND_ENABLED:-false}
+      CALENDAR_CREATE_SEND_ENABLED: ${CALENDAR_CREATE_SEND_ENABLED:-false}
+      CALENDAR_LIVE_SOURCE_CHECK_ENABLED: ${CALENDAR_LIVE_SOURCE_CHECK_ENABLED:-false}
+      CALENDAR_CREATION_RECOVERY_ENABLED: ${CALENDAR_CREATION_RECOVERY_ENABLED:-false}
+      CALENDAR_CREATE_PREPARATION_ENABLED: ${CALENDAR_CREATE_PREPARATION_ENABLED:-false}
+      CALENDAR_CRM_LOOKUP_ENABLED: ${CALENDAR_CRM_LOOKUP_ENABLED:-false}
+      TWENTY_WORKSPACE_ID: ${TWENTY_WORKSPACE_ID:-}
+      CALENDAR_CONNECTION_ID: ${CALENDAR_CONNECTION_ID:-}
+      TWENTY_API_URL: ${TWENTY_API_URL:-}
+      TWENTY_API_TOKEN: ${TWENTY_API_TOKEN:-}
+      TWENTY_ALLOW_INSECURE_HTTP: ${TWENTY_ALLOW_INSECURE_HTTP:-false}
+      CALENDAR_PREVIEW_ENABLED: ${CALENDAR_PREVIEW_ENABLED:-false}
+      CALENDAR_POLLING_ENABLED: ${CALENDAR_POLLING_ENABLED:-false}
+      CALENDAR_ENCRYPTION_KEY: ${CALENDAR_ENCRYPTION_KEY:-}
+      CALENDAR_ENCRYPTION_KEY_ID: ${CALENDAR_ENCRYPTION_KEY_ID:-primary}
+    ports:
+      - "127.0.0.1:${CALENDAR_HTTP_PORT:-3100}:3100"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3100/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+

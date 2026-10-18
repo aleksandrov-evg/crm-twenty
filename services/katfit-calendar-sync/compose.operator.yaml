@@ -1,0 +1,5 @@
+# Use only with compose.yaml for one-off operator commands.
+services:
+  service:
+    env_file:
+      - .env

@@ -1,14 +1,14 @@
 import { defineLogicFunction, type RoutePayload } from 'twenty-sdk/define';
 import { Response } from 'twenty-sdk/logic-function';
 
-import { recordPastAttendance } from 'src/logic-functions/handlers/record-past-attendance-handler';
+import { recordGuardedPastAttendance } from 'src/logic-functions/handlers/record-guarded-past-attendance-handler';
 import { type RecordPastAttendanceInput } from 'src/logic-functions/utils/past-attendance';
 
 const handler = async (
   routePayload: RoutePayload<RecordPastAttendanceInput>,
   context: { userWorkspaceId: string | null },
 ): Promise<Response> => {
-  const result = await recordPastAttendance((routePayload.body ?? {}) as RecordPastAttendanceInput, context);
+  const result = await recordGuardedPastAttendance((routePayload.body ?? {}) as RecordPastAttendanceInput, context);
   return new Response(result, { status: result.success ? 200 : result.status });
 };
 

@@ -16,6 +16,9 @@ export default defineLogicFunction({
     try {
       const result = await createClassSession(
         (payload.body ?? {}) as CreateClassSessionInput,
+        undefined,
+        new Date(),
+        { coordinateParticipants: true },
       );
       return new Response(result, {
         status: result.success ? 200 : result.status,
@@ -26,7 +29,7 @@ export default defineLogicFunction({
           success: false,
           code: 'SESSION_CREATE_UNCONFIRMED',
           message:
-          'Создание тренировки, добавление участников или журнал не подтверждены. Проверьте CRM и повторите с прежним ключом.',
+          'Создание тренировки, добавление участников или журнал не подтверждены. Проверьте CRM и журнал операции перед повтором.',
         },
         { status: 500 },
       );
