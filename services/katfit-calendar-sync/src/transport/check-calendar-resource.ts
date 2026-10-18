@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { isStrongEtag } from './is-strong-etag';
+import { isCalendarEtag } from './is-calendar-etag';
 import { readBoundedBody } from './read-bounded-body';
 import { isCalendarResourceUrl } from './read-calendar-snapshot';
 
@@ -32,7 +32,7 @@ export const checkCalendarResource = async (
 ): Promise<CalendarResourceCheckResult> => {
   if (
     !isCalendarResourceUrl(source.calendarUrl, source.resourceUrl) ||
-    !isStrongEtag(source.etag) ||
+    !isCalendarEtag(source.etag) ||
     !/^[a-f0-9]{64}$/.test(source.contentHash)
   )
     return { status: 'invalid-source' };
@@ -77,7 +77,7 @@ export const checkCalendarResource = async (
     )
       return { status: 'invalid-source' };
     const etag = response.headers.get('etag');
-    if (etag !== source.etag || !isStrongEtag(etag))
+    if (etag !== source.etag || !isCalendarEtag(etag))
       return { status: 'changed' };
     const rawContentHash = createHash('sha256').update(body).digest('hex');
     // XML calendar-data can normalize CRLF while a resource GET preserves it.

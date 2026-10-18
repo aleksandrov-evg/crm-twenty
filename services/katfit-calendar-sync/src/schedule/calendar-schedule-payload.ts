@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { calendarScheduleUpdateSchema } from '../crm/update-calendar-schedule';
 import { scheduleSchema } from '../domain/merge-session-schedule';
-import { isStrongEtag } from '../transport/is-strong-etag';
+import { isCalendarEtag } from '../transport/is-calendar-etag';
 
 export const calendarSchedulePayloadSchema = z.strictObject({
   kind: z.literal('SYNC_SCHEDULE'),
@@ -18,7 +18,7 @@ export const calendarSchedulePayloadSchema = z.strictObject({
   resourceVersion: z.number().int().positive(),
   calendarUrl: z.url(),
   resourceUrl: z.url(),
-  expectedEtag: z.string().refine(isStrongEtag),
+  expectedEtag: z.string().refine(isCalendarEtag),
   sourceData: z.string().max(2 * 1024 * 1024),
   calendarData: z.string().max(2 * 1024 * 1024),
   base: scheduleSchema,

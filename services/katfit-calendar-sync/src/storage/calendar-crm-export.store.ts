@@ -9,7 +9,7 @@ import {
   isSameCrmOriginCalendarData,
   type CrmOriginExportCommand,
 } from '../domain/render-crm-origin-export';
-import { isStrongEtag } from '../transport/is-strong-etag';
+import { isCalendarEtag } from '../transport/is-calendar-etag';
 import { type CalendarCrmScope } from './calendar-crm-reconciliation.store';
 
 export type CalendarCrmExportContext = {
@@ -248,7 +248,7 @@ export class CalendarCrmExportStore {
     calendarData: string,
   ): Promise<boolean> {
     if (
-      !isStrongEtag(etag) ||
+      !isCalendarEtag(etag) ||
       !isSameCrmOriginCalendarData(lease.command.calendarData, calendarData)
     )
       return false;

@@ -809,8 +809,12 @@ HTTP/content-type, XML/multistatus, member/property status, resource URL, duplic
 URL, ETag, or iCalendar validation failures without logging response bodies.
 These diagnostics do not relax validation or treat an invalid inventory as empty.
 
-When a REPORT ETag fails strong-validator syntax, polling performs a bounded GET
-of that resource (at most 50 fallbacks per inventory). It accepts only a genuine
-strong HTTP ETag and byte-for-byte matching calendar text. It never removes `W/`
-or adds quotes to manufacture a validator. A changed resource, missing/weak GET
-ETag, or fallback limit rejects the entire snapshot; no partial inventory is saved.
+When a REPORT ETag is unquoted or fails validator syntax, polling performs a
+bounded GET of that resource (at most 50 fallbacks per inventory). Yandex bare
+HTTP validators are accepted only as 1–256 ASCII characters: an initial letter or
+digit followed by letters, digits, dot, underscore, colon, or hyphen. Quoted HTTP
+ETags remain supported. Weak `W/` validators, whitespace, wildcard and tag lists
+are rejected. The exact HTTP validator is retained for `If-Match`; no quotes are
+added or removed. REPORT and GET calendar text must match byte for byte, even
+when their ETags differ. Changed content or invalid validators reject the entire
+inventory; no partial inventory is saved.

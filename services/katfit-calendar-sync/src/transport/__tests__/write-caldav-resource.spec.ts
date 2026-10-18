@@ -41,6 +41,12 @@ describe('writeCalDavResource', () => {
     ).toMatchObject({ status: 'written' });
   });
 
+  it.each(['update', 'delete'] as const)('preserves a bare server ETag for %s', async (action) => {
+    await writeCalDavResource({ calendarUrl, resourceUrl,
+      operation: { action, expectedEtag: '1234567890123-123456', calendarData }, fetch });
+    expect(new Headers(fetch.mock.calls[0][1]?.headers).get('If-Match')).toBe('1234567890123-123456');
+  });
+
   it('creates the same resource conditionally without overwriting an existing event', async () => {
     const result = await writeCalDavResource({
       calendarUrl,

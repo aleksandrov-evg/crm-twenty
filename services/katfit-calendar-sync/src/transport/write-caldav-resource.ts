@@ -1,4 +1,4 @@
-import { isStrongEtag } from './is-strong-etag';
+import { isCalendarEtag } from './is-calendar-etag';
 import { isNonEmptyString } from '@sniptt/guards';
 import {
   createCalendarObject,
@@ -80,7 +80,7 @@ export const writeCalDavResource = async ({
   }
 
   // Last-Modified and weak tags cannot protect a conditional resource write.
-  if (operation.action !== 'create' && !isStrongEtag(operation.expectedEtag)) {
+  if (operation.action !== 'create' && !isCalendarEtag(operation.expectedEtag)) {
     return { status: 'invalid-etag' };
   }
 

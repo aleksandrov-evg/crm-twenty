@@ -1,4 +1,4 @@
-import { isStrongEtag } from './is-strong-etag';
+import { isCalendarEtag } from './is-calendar-etag';
 import { readBoundedBody } from './read-bounded-body';
 import { isCalendarResourceUrl } from './is-calendar-resource-url';
 
@@ -51,7 +51,7 @@ export const readCalendarResource = async (
     if (
       !body ||
       !etag ||
-      !isStrongEtag(etag) ||
+      !isCalendarEtag(etag) ||
       !response.headers
         .get('content-type')
         ?.toLowerCase()

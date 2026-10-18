@@ -1,7 +1,7 @@
 import { isCalendarResourceUrl } from './is-calendar-resource-url';
 import { readCalendarResource } from './read-calendar-resource';
 import { calendarLogger } from '../observability/calendar-logger';
-import { isStrongEtag } from './is-strong-etag';
+import { isCalendarEtag } from './is-calendar-etag';
 import { xml2js } from 'xml-js';
 import { z } from 'zod';
 
@@ -128,9 +128,9 @@ export const readCalendarSnapshot = async (
       if (!isCalendarResourceUrl(calendarUrl, url))
         return reject('CALDAV_SNAPSHOT_RESOURCE_URL');
       if (urls.has(url)) return reject('CALDAV_SNAPSHOT_DUPLICATE_URL');
-      if (!isStrongEtag(etag)) {
+      if (!isCalendarEtag(etag) || !etag.startsWith('"')) {
         if (++fallbackReads > 50) return reject('CALDAV_SNAPSHOT_ETAG_READ_LIMIT');
-        // Use a server-issued HTTP validator; never invent a strong tag from REPORT text.
+        // REPORT and HTTP validators may differ; confirm the HTTP value with matching content.
         const resource = await readCalendarResource(calendarUrl, url, fetch);
         if (resource.status === 'auth-required' || resource.status === 'forbidden' || resource.status === 'unavailable')
           return { status: resource.status };

@@ -67,6 +67,17 @@ describe('readCalendarSnapshot', () => {
     },
   );
 
+  it('uses the bare HTTP validator when it differs from REPORT', async () => {
+    fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', '1234567890123')), {
+      status: 207, headers: { 'Content-Type': 'application/xml' },
+    })).mockResolvedValueOnce(new Response(calendarData, {
+      headers: { 'Content-Type': 'text/calendar', ETag: '1234567890123-123456' },
+    }));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
+      status: 'snapshot', resources: [{ url: `${calendarUrl}one.ics`, etag: '1234567890123-123456', calendarData }],
+    });
+  });
+
   it('rejects changes between REPORT and GET instead of mixing versions', async () => {
     fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted')), {
       status: 207, headers: { 'Content-Type': 'application/xml' },
