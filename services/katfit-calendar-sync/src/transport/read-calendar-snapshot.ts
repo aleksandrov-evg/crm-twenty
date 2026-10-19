@@ -124,7 +124,7 @@ export const readCalendarSnapshot = async (
       validationStage = 'CALDAV_SNAPSHOT_ETAG_PROPERTY';
       let etag = xmlText.parse(properties.get('getetag'));
       validationStage = 'CALDAV_SNAPSHOT_DATA_PROPERTY';
-      const calendarData = xmlText.parse(properties.get('calendar-data'));
+      let calendarData = xmlText.parse(properties.get('calendar-data'));
       if (!isCalendarResourceUrl(calendarUrl, url))
         return reject('CALDAV_SNAPSHOT_RESOURCE_URL');
       if (urls.has(url)) return reject('CALDAV_SNAPSHOT_DUPLICATE_URL');
@@ -135,9 +135,11 @@ export const readCalendarSnapshot = async (
         if (resource.status === 'auth-required' || resource.status === 'forbidden' || resource.status === 'unavailable')
           return { status: resource.status };
         if (resource.status !== 'read') return reject('CALDAV_SNAPSHOT_WEAK_ETAG');
-        if (resource.calendarData !== calendarData)
+        // XML calendar-data may use LF while the HTTP resource uses CRLF.
+        if (resource.calendarData.replace(/\r\n/g, '\n') !== calendarData.replace(/\r\n/g, '\n'))
           return reject('CALDAV_SNAPSHOT_CHANGED_DURING_READ');
         etag = resource.etag;
+        calendarData = resource.calendarData;
       }
       if (
         !/^BEGIN:VCALENDAR(?:\r\n|\r|\n)/.test(calendarData) ||

@@ -78,6 +78,19 @@ describe('readCalendarSnapshot', () => {
     });
   });
 
+  it.each([true, false])('accepts different line endings and preserves the GET body (REPORT CRLF: %s)', async (reportUsesCrLf) => {
+    const reportData = reportUsesCrLf ? calendarData : calendarData.replace(/\r\n/g, '\n');
+    const resourceData = reportUsesCrLf ? calendarData.replace(/\r\n/g, '\n') : calendarData;
+    fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted').replace(calendarData, reportData)), {
+      status: 207, headers: { 'Content-Type': 'application/xml' },
+    })).mockResolvedValueOnce(new Response(resourceData, {
+      headers: { 'Content-Type': 'text/calendar', ETag: '"verified"' },
+    }));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
+      status: 'snapshot', resources: [{ url: `${calendarUrl}one.ics`, etag: '"verified"', calendarData: resourceData }],
+    });
+  });
+
   it('rejects changes between REPORT and GET instead of mixing versions', async () => {
     fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted')), {
       status: 207, headers: { 'Content-Type': 'application/xml' },
