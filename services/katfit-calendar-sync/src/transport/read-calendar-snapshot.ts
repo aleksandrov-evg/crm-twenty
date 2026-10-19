@@ -4,6 +4,7 @@ import { calendarLogger } from '../observability/calendar-logger';
 import { isCalendarEtag } from './is-calendar-etag';
 import { xml2js } from 'xml-js';
 import { z } from 'zod';
+import { isSameCrmOriginCalendarData } from '../domain/render-crm-origin-export';
 
 import { isYandexCalDavTarget } from './yandex-caldav-target';
 
@@ -146,7 +147,9 @@ export const readCalendarSnapshot = async (
                 ? 'trailing-newline'
                 : unfold(resourceData).replace(/\n+$/, '') === unfold(reportData).replace(/\n+$/, '')
                   ? 'line-folding'
-                  : 'content-different',
+                  : isSameCrmOriginCalendarData(calendarData, resource.calendarData)
+                    ? 'serialization-different'
+                    : 'content-different',
           });
           return reject('CALDAV_SNAPSHOT_CHANGED_DURING_READ');
         }

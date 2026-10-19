@@ -95,6 +95,7 @@ describe('readCalendarSnapshot', () => {
     [calendarData.replace(/\r\n$/, ''), 'trailing-newline'],
     [calendarData.replace(/\r\n /g, ''), 'line-folding'],
     [calendarData.replace('UID:one', 'UID:changed'), 'content-different'],
+    [calendarData.replace('UID:one\r\nSUMMARY:Класс\r\n продолжение', 'SUMMARY:Класс\r\n продолжение\r\nUID:one'), 'serialization-different'],
   ])('diagnoses mismatches without logging event contents (%s)', async (resourceData, result) => {
     const event = jest.spyOn(calendarLogger, 'event').mockImplementation();
     fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted')), {

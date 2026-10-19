@@ -50,6 +50,7 @@ const LABELS = new Set([
   'trailing-newline',
   'line-folding',
   'content-different',
+  'serialization-different',
   'discovery-failed',
   'authorized',
   'both-sides-verified',
