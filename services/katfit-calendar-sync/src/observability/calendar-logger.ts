@@ -41,11 +41,15 @@ const EVENTS = new Set([
   'service.failed',
   'calendar.snapshot',
   'calendar.snapshot.rejected',
+  'calendar.snapshot.comparison',
   'crm.creation',
   'calendar.description',
   'calendar.schedule',
 ]);
 const LABELS = new Set([
+  'trailing-newline',
+  'line-folding',
+  'content-different',
   'discovery-failed',
   'authorized',
   'both-sides-verified',

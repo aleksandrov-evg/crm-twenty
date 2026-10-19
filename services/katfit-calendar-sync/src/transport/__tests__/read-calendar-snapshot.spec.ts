@@ -91,6 +91,23 @@ describe('readCalendarSnapshot', () => {
     });
   });
 
+  it.each([
+    [calendarData.replace(/\r\n$/, ''), 'trailing-newline'],
+    [calendarData.replace(/\r\n /g, ''), 'line-folding'],
+    [calendarData.replace('UID:one', 'UID:changed'), 'content-different'],
+  ])('diagnoses mismatches without logging event contents (%s)', async (resourceData, result) => {
+    const event = jest.spyOn(calendarLogger, 'event').mockImplementation();
+    fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted')), {
+      status: 207, headers: { 'Content-Type': 'application/xml' },
+    })).mockResolvedValueOnce(new Response(resourceData, {
+      headers: { 'Content-Type': 'text/calendar', ETag: '"verified"' },
+    }));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
+    expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.comparison', { result });
+    expect(JSON.stringify(event.mock.calls)).not.toContain('UID:');
+    expect(JSON.stringify(event.mock.calls)).not.toContain(calendarUrl);
+  });
+
   it('rejects changes between REPORT and GET instead of mixing versions', async () => {
     fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted')), {
       status: 207, headers: { 'Content-Type': 'application/xml' },

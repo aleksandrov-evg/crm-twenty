@@ -136,8 +136,20 @@ export const readCalendarSnapshot = async (
           return { status: resource.status };
         if (resource.status !== 'read') return reject('CALDAV_SNAPSHOT_WEAK_ETAG');
         // XML calendar-data may use LF while the HTTP resource uses CRLF.
-        if (resource.calendarData.replace(/\r\n/g, '\n') !== calendarData.replace(/\r\n/g, '\n'))
+        const reportData = calendarData.replace(/\r\n/g, '\n');
+        const resourceData = resource.calendarData.replace(/\r\n/g, '\n');
+        if (resourceData !== reportData) {
+          const unfold = (value: string) => value.replace(/\n[ \t]/g, '');
+          calendarLogger.event('error', 'calendar.snapshot.comparison', {
+            result:
+              resourceData.replace(/\n+$/, '') === reportData.replace(/\n+$/, '')
+                ? 'trailing-newline'
+                : unfold(resourceData).replace(/\n+$/, '') === unfold(reportData).replace(/\n+$/, '')
+                  ? 'line-folding'
+                  : 'content-different',
+          });
           return reject('CALDAV_SNAPSHOT_CHANGED_DURING_READ');
+        }
         etag = resource.etag;
         calendarData = resource.calendarData;
       }
