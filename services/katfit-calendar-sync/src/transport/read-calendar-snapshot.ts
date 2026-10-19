@@ -1,4 +1,5 @@
 import { isCalendarResourceUrl } from './is-calendar-resource-url';
+import { describeCalendarDataDifference } from './describe-calendar-data-difference';
 import { readCalendarResource } from './read-calendar-resource';
 import { calendarLogger } from '../observability/calendar-logger';
 import { isCalendarEtag } from './is-calendar-etag';
@@ -142,6 +143,7 @@ export const readCalendarSnapshot = async (
         if (resourceData !== reportData) {
           const unfold = (value: string) => value.replace(/\n[ \t]/g, '');
           calendarLogger.event('error', 'calendar.snapshot.comparison', {
+            differenceFields: describeCalendarDataDifference(calendarData, resource.calendarData),
             result:
               resourceData.replace(/\n+$/, '') === reportData.replace(/\n+$/, '')
                 ? 'trailing-newline'

@@ -104,7 +104,10 @@ describe('readCalendarSnapshot', () => {
       headers: { 'Content-Type': 'text/calendar', ETag: '"verified"' },
     }));
     expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
-    expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.comparison', { result });
+    expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.comparison', {
+      result,
+      differenceFields: result === 'content-different' ? ['uid'] : [],
+    });
     expect(JSON.stringify(event.mock.calls)).not.toContain('UID:');
     expect(JSON.stringify(event.mock.calls)).not.toContain(calendarUrl);
   });

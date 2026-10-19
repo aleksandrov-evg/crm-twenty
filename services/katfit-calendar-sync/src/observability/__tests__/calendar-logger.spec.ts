@@ -1,6 +1,15 @@
 import { createCalendarLogger, readCalendarLogLevel } from '../calendar-logger';
 
 describe('calendar structured logging', () => {
+  it('logs only allowlisted calendar difference fields', () => {
+    const write = jest.fn();
+    createCalendarLogger('info', write).event('error', 'calendar.snapshot.comparison', {
+      result: 'content-different',
+      differenceFields: ['dtstamp', 'private-field', 'description'],
+    });
+    expect(JSON.parse(write.mock.calls[0][0]).differenceFields).toEqual(['dtstamp', 'description']);
+    expect(write.mock.calls[0][0]).not.toContain('private-field');
+  });
   it('uses info by default and rejects invalid levels', () => {
     expect(readCalendarLogLevel({})).toBe('info');
     expect(readCalendarLogLevel({ CALENDAR_LOG_LEVEL: 'debug' })).toBe('debug');

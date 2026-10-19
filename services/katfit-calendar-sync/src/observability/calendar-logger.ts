@@ -1,3 +1,4 @@
+import { CALENDAR_DIFFERENCE_FIELDS } from '../transport/describe-calendar-data-difference';
 import {
   CALENDAR_CONFIGURATION_CODES,
   CALENDAR_CONFIGURATION_FIELDS,
@@ -5,6 +6,7 @@ import {
 export type CalendarLogLevel = 'silent' | 'error' | 'info' | 'debug';
 type EventLevel = Exclude<CalendarLogLevel, 'silent'>;
 type Fields = {
+  differenceFields?: string[];
   stage?: string;
   configurationFields?: string[];
   worker?: string;
@@ -231,6 +233,10 @@ export const createCalendarLogger = (
   event: (severity: EventLevel, event: string, fields: Fields = {}): void => {
     if (PRIORITY[severity] > PRIORITY[level] || !EVENTS.has(event)) return;
     const safe: Record<string, string | number | string[]> = {};
+    if (fields.differenceFields) {
+      const allowed = new Set<string>(CALENDAR_DIFFERENCE_FIELDS);
+      safe.differenceFields = fields.differenceFields.filter((field) => allowed.has(field)).slice(0, 30);
+    }
     if (
       fields.stage &&
       ['configuration', 'database', 'http', 'workers'].includes(fields.stage)
