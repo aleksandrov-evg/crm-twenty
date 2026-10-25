@@ -24,6 +24,7 @@ class FakePurchase {
   token: string | null = null;
   saved: string | null = null;
   balance = 4;
+  emptyNullableText = false;
   loseReceipt = false;
   writes = 0;
   async query(selection: Selection) {
@@ -33,8 +34,9 @@ class FakePurchase {
           {
             node: {
               id: membershipId,
-              mutationLock: this.token,
-              purchaseOperationReceipt: this.saved,
+              mutationLock: this.token ?? (this.emptyNullableText ? '' : null),
+              purchaseOperationReceipt:
+                this.saved ?? (this.emptyNullableText ? '' : null),
               visitsGranted: 4,
               visitsReserved: 0,
               visitsConsumed: 0,
@@ -171,4 +173,13 @@ test('legacy duplicate without a saved receipt stays under review despite matchi
   assert.equal(result.success, false);
   assert.notEqual(fake.token, null);
   assert.match(fake.saved!, /NEEDS_REVIEW/);
+});
+
+test('empty nullable text from Twenty permits the first purchase and exact replay', async () => {
+  const fake = new FakePurchase();
+  fake.emptyNullableText = true;
+  assert.equal((await run(fake)).success, true);
+  assert.equal((await run(fake)).success, true);
+  assert.equal(fake.writes, 1);
+  assert.equal(fake.token, null);
 });

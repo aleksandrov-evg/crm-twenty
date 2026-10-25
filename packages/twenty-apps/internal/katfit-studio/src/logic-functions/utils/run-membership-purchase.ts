@@ -60,8 +60,11 @@ const read = async (
   )
     throw Error('Membership receipt invalid');
   return {
-    mutationLock: edge.node.mutationLock,
-    purchaseOperationReceipt: edge.node.purchaseOperationReceipt,
+    mutationLock: edge.node.mutationLock === '' ? null : edge.node.mutationLock,
+    purchaseOperationReceipt:
+      edge.node.purchaseOperationReceipt === ''
+        ? null
+        : edge.node.purchaseOperationReceipt,
   };
 };
 export const runMembershipPurchase = async <
