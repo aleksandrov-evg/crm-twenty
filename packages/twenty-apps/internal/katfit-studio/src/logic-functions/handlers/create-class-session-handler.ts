@@ -1,11 +1,24 @@
 import { CoreApiClient } from 'twenty-client-sdk/core';
 
+import {
+  attachSessionPayment,
+  readSessionPayment,
+  type PaidSessionParticipant,
+} from 'src/logic-functions/handlers/attach-session-payment-handler';
+
 import { coordinateSessionParticipants } from 'src/logic-functions/utils/coordinate-session-participants';
 import { isStudioRecordIdentifier } from 'src/logic-functions/utils/session-mutation-lock';
 
 import { SESSION_FORMAT_OPTIONS } from 'src/constants/select-options';
 import { createRegularBooking } from 'src/logic-functions/handlers/create-regular-booking-handler';
 import { recordPastAttendance } from 'src/logic-functions/handlers/record-past-attendance-handler';
+
+type SessionParticipant =
+  | { personId: string; membershipId: string }
+  | PaidSessionParticipant;
+const isPaymentParticipant = (
+  participant: SessionParticipant,
+): participant is PaidSessionParticipant => 'paymentId' in participant;
 
 export type CreateClassSessionInput = {
   name?: string;
@@ -16,7 +29,7 @@ export type CreateClassSessionInput = {
   status: 'PLANNED' | 'CONFIRMED' | 'COMPLETED';
   pastConfirmed?: boolean;
   idempotencyKey: string;
-  participants?: Array<{ personId: string; membershipId: string }>;
+  participants?: SessionParticipant[];
   attendanceReason?: string;
 };
 type Session = {
@@ -70,7 +83,13 @@ export const createClassSession = async (
     !Array.isArray(participants) ||
     participants.length > input.capacity ||
     participants.some(
-      (participant) => !participant?.personId || !participant.membershipId,
+      (participant) =>
+        !participant?.personId ||
+        (isPaymentParticipant(participant)
+          ? !participant.paymentId ||
+            !participant.productId ||
+            'membershipId' in participant
+          : !participant.membershipId || 'productId' in participant),
     ) ||
     new Set(participants.map((participant) => participant.personId)).size !==
       participants.length
@@ -84,7 +103,10 @@ export const createClassSession = async (
     participants.some(
       (participant) =>
         !isStudioRecordIdentifier(participant.personId) ||
-        !isStudioRecordIdentifier(participant.membershipId),
+        !(isPaymentParticipant(participant)
+          ? isStudioRecordIdentifier(participant.paymentId) &&
+            isStudioRecordIdentifier(participant.productId)
+          : isStudioRecordIdentifier(participant.membershipId)),
     )
   )
     return fail(
@@ -198,6 +220,28 @@ export const createClassSession = async (
     );
   if (!session) {
     for (const participant of participants) {
+      if (isPaymentParticipant(participant)) {
+        const payment =
+          input.status === 'CONFIRMED'
+            ? null
+            : await readSessionPayment(
+                participant,
+                {
+                  startsAt,
+                  durationMinutes: input.durationMinutes,
+                  sessionFormat: input.sessionFormat,
+                  status: input.status,
+                },
+                client,
+              );
+        if (!payment || payment.externalId?.startsWith('pay-as-you-go:'))
+          return fail(
+            'PARTICIPANT_PAYMENT_UNAVAILABLE',
+            'Оплата не соответствует клиенту, дате, длительности или формату тренировки.',
+            409,
+          );
+        continue;
+      }
       const result = (await client.query({
         studioMemberships: {
           __args: {
@@ -386,7 +430,13 @@ export const createClassSession = async (
   const applyParticipants = async (
     participantClient: CoreApiClient,
   ): Promise<CreateClassSessionResult> => {
-    const attendanceInputs = participants.map((participant) => ({
+    const packageParticipants = participants.filter(
+      (
+        participant,
+      ): participant is { personId: string; membershipId: string } =>
+        !isPaymentParticipant(participant),
+    );
+    const attendanceInputs = packageParticipants.map((participant) => ({
       ...participant,
       startsAt,
       endsAt,
@@ -410,7 +460,7 @@ export const createClassSession = async (
           );
       }
     }
-    for (const [index, participant] of participants.entries()) {
+    for (const [index, participant] of packageParticipants.entries()) {
       if (input.status === 'PLANNED') {
         const booking = await createRegularBooking(
           {
@@ -440,6 +490,22 @@ export const createClassSession = async (
           );
       }
     }
+    for (const participant of participants.filter(isPaymentParticipant)) {
+      if (input.status === 'CONFIRMED')
+        throw Error('PAYMENT_SESSION_STATUS_INVALID');
+      await attachSessionPayment(
+        participant,
+        {
+          id: classSessionId,
+          startsAt,
+          durationMinutes: input.durationMinutes,
+          sessionFormat: input.sessionFormat,
+          status: input.status,
+        },
+        `${input.idempotencyKey}:participant:${participant.personId}`,
+        participantClient,
+      );
+    }
     return { success: true, classSessionId, duplicate: false };
   };
   if (options.coordinateParticipants && participants.length) {
@@ -454,7 +520,14 @@ export const createClassSession = async (
         idempotencyKey: input.idempotencyKey,
         status: input.status,
         creationRequest,
-        membershipIds: participants.map((participant) => participant.membershipId),
+        membershipIds: participants
+          .filter(
+            (
+              participant,
+            ): participant is { personId: string; membershipId: string } =>
+              !isPaymentParticipant(participant),
+          )
+          .map((participant) => participant.membershipId),
       },
       client,
       applyParticipants,

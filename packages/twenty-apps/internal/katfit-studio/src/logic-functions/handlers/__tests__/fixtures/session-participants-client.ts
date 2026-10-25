@@ -13,6 +13,9 @@ type Selection = Record<
 export class SessionParticipantsClient {
   records: Record<string, RecordData[]> = {
     classSessions: [],
+    people: [],
+    studioProducts: [],
+    studioPayments: [],
     studioSessionOperations: [],
     studioBookings: [],
     studioEvents: [],
@@ -63,6 +66,8 @@ export class SessionParticipantsClient {
   bookingAttempts = 0;
   failSecondBooking = false;
   failBookingEvent = false;
+  failPaymentEvent = false;
+  failPaymentLink = false;
   loseBookingEventResponse = false;
   nextId = 1;
   matches(record: RecordData, filter: Filter = {}): boolean {
@@ -116,6 +121,20 @@ export class SessionParticipantsClient {
     const [operation, { __args: args }] = Object.entries(selection)[0];
     if (
       operation === 'createStudioEvent' &&
+      ['PAYMENT_CONFIRMED', 'PAYMENT_EXPECTED'].includes(
+        String(args.data?.eventType),
+      ) &&
+      this.failPaymentEvent
+    ) {
+      this.failPaymentEvent = false;
+      throw Error('Payment audit failed');
+    }
+    if (operation === 'updateStudioPayment' && this.failPaymentLink) {
+      this.failPaymentLink = false;
+      throw Error('Payment link failed');
+    }
+    if (
+      operation === 'createStudioEvent' &&
       args.data?.eventType === 'BOOKING_CREATED' &&
       this.failBookingEvent
     ) {
@@ -136,6 +155,8 @@ export class SessionParticipantsClient {
       updateStudioSessionOperations: 'studioSessionOperations',
       updateClassSessions: 'classSessions',
       createStudioBooking: 'studioBookings',
+      createStudioPayment: 'studioPayments',
+      updateStudioPayment: 'studioPayments',
       createStudioEvent: 'studioEvents',
       createMembershipTransaction: 'membershipTransactions',
       updateClassSession: 'classSessions',

@@ -31,6 +31,13 @@ export default defineObject({
       icon: 'IconActivity',
       options: [
         {
+          id: 'ec98ff21-f78e-4425-84a7-02de91037bda',
+          value: 'PAYMENT_EXPECTED',
+          label: 'Создан долг',
+          position: 10,
+          color: 'orange',
+        },
+        {
           id: '05ca2daa-840e-49dc-b390-33c31a8d5463',
           value: 'SESSION_UPDATED',
           label: 'Занятие изменено',
