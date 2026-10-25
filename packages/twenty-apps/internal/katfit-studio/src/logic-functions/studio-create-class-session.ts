@@ -11,7 +11,7 @@ export default defineLogicFunction({
   name: 'studio-create-class-session',
   description:
     'Create a future or historical session with optional package-backed participants and required audit events',
-  timeoutSeconds: 30,
+  timeoutSeconds: 60,
   handler: async (payload: RoutePayload<CreateClassSessionInput>) => {
     try {
       const result = await createClassSession(
