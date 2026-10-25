@@ -1,5 +1,6 @@
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { recordStudioEvent } from 'src/logic-functions/utils/studio-event';
+import { synchronizeSessionBookedCount } from 'src/logic-functions/utils/booking-ledger';
 export const cancelPayAsYouGoBooking = async (
   input: { bookingId: string; cancelledAt: string; idempotencyKey: string },
   client = new CoreApiClient(),
@@ -104,6 +105,7 @@ export const cancelPayAsYouGoBooking = async (
         id: true,
       },
     } as never);
+    await synchronizeSessionBookedCount(client, booking.classSessionId);
     await recordStudioEvent(
       {
         bookingId: booking.id,

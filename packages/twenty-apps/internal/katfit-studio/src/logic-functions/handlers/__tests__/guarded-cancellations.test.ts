@@ -16,6 +16,7 @@ type Selection = Parameters<FakeGatewayClient['query']>[0];
 class CancellationClient extends FakeGatewayClient {
   bookings: Array<Record<string, unknown>> = [];
   businessWrites = 0;
+  bookedCount = 0;
   hasNextPage = false;
   failSessionReply = false;
   paymentStatus = 'EXPECTED';
@@ -51,6 +52,14 @@ class CancellationClient extends FakeGatewayClient {
     return super.query(selection);
   }
   override async mutation(selection: Selection) {
+    if (selection.updateClassSession) {
+      this.bookedCount = Number(
+        selection.updateClassSession.__args.data?.bookedCount,
+      );
+      return { updateClassSession: { id: input.classSessionId } } as Awaited<
+        ReturnType<FakeGatewayClient['mutation']>
+      >;
+    }
     if (selection.updateStudioPayment || selection.updateStudioBooking) {
       if (selection.updateStudioPayment)
         this.paymentStatus = String(
@@ -314,4 +323,41 @@ test('stale expected session snapshot rejects cancellation under ownership witho
   assert.equal(result.success, false);
   assert.equal(fake.businessWrites, 0);
   assert.equal(fake.token, null);
+});
+
+test('individual pay-as-you-go cancellation frees the counted place and replay does not mutate again', async () => {
+  const fake = new CancellationClient();
+  fake.bookedCount = 1;
+  fake.bookings = [
+    {
+      id: bookingId,
+      classSessionId: input.classSessionId,
+      membershipId: null,
+      pairId: null,
+      bookingType: 'REGULAR',
+      consumesVisit: false,
+      status: 'BOOKED',
+      paymentStatus: 'EXPECTED',
+    },
+  ];
+  const cancellation = {
+    bookingId,
+    cancelledAt: command.cancelledAt,
+    idempotencyKey: 'single-cash-cancel',
+  };
+  assert.equal(
+    (await cancelGuardedBooking(cancellation, 'pay-as-you-go', fake.client()))
+      .success,
+    true,
+  );
+  assert.equal(fake.bookedCount, 0);
+  assert.equal(fake.paymentStatus, 'FAILED');
+  assert.equal(fake.bookings[0].paymentStatus, 'WAIVED');
+  const writes = fake.businessWrites;
+  assert.equal(
+    (await cancelGuardedBooking(cancellation, 'pay-as-you-go', fake.client()))
+      .success,
+    true,
+  );
+  assert.equal(fake.businessWrites, writes);
 });
