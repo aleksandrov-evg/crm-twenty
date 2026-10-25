@@ -1,0 +1,525 @@
+{
+  "payments": {
+    "records": [
+      {
+        "name": "Оплачено · Персональное разовое · 2026-10-24",
+        "amount": {
+          "amountMicros": 4000000000,
+          "currencyCode": "RUB"
+        },
+        "status": "PAID",
+        "paidAt": "2026-10-23T21:00:00.000Z",
+        "externalId": "pay-as-you-go:f31dcf06-e12c-4177-b830-c8ef16c77f3f",
+        "id": "1b22c92e-1a34-4648-b5ed-547aa5194601",
+        "personId": "a8d9de2a-d790-4322-bfd6-8b1548e39da6"
+      },
+      {
+        "name": "К оплате · Персональное разовое · 2026-10-29",
+        "amount": {
+          "amountMicros": 4000000000,
+          "currencyCode": "RUB"
+        },
+        "status": "FAILED",
+        "paidAt": null,
+        "externalId": "pay-as-you-go:6672da99-b434-48ee-8275-21d89e1330e7",
+        "id": "795d4b0d-966f-44f5-a38c-99ef5c82f066",
+        "personId": "a8d9de2a-d790-4322-bfd6-8b1548e39da6"
+      },
+      {
+        "name": "К оплате · Разовое · 2026-10-28",
+        "amount": {
+          "amountMicros": 2500000000,
+          "currencyCode": "RUB"
+        },
+        "status": "FAILED",
+        "paidAt": null,
+        "externalId": "pay-as-you-go:b9b18e15-a01b-4f48-8a09-4358c799a67d",
+        "id": "8ad657d5-335f-4ff1-84f2-b9665ccdf473",
+        "personId": "3b7fd192-f464-406b-bbb5-184ba86842ab"
+      },
+      {
+        "name": "Оплачено · Разовое · 2026-10-24",
+        "amount": {
+          "amountMicros": 2500000000,
+          "currencyCode": "RUB"
+        },
+        "status": "PAID",
+        "paidAt": "2026-10-23T21:00:00.000Z",
+        "externalId": "pay-as-you-go:32e4a945-f525-4316-84bb-8ecac216ff71",
+        "id": "95e53699-d02d-4eb2-852d-d426581ed8ef",
+        "personId": "3b7fd192-f464-406b-bbb5-184ba86842ab"
+      },
+      {
+        "name": "Оплачено · Разовое · 2026-10-24",
+        "amount": {
+          "amountMicros": 2500000000,
+          "currencyCode": "RUB"
+        },
+        "status": "PAID",
+        "paidAt": "2026-10-23T21:00:00.000Z",
+        "externalId": "pay-as-you-go:0f747acd-468b-46f7-9aa9-00435ce15310",
+        "id": "cd397273-aa60-4a9b-b3a3-56d8acfd8bd7",
+        "personId": "3b7fd192-f464-406b-bbb5-184ba86842ab"
+      },
+      {
+        "name": "Группа 4 · 8800 ₽",
+        "amount": {
+          "amountMicros": 8800000000,
+          "currencyCode": "RUB"
+        },
+        "status": "PAID",
+        "paidAt": "2026-10-19T21:00:00.000Z",
+        "externalId": "",
+        "id": "f532848d-9c97-4c3d-b4c9-d7f0ee4f1df8",
+        "personId": "d99f86d4-5bb8-43f0-b4c4-3c28228c7a30"
+      }
+    ],
+    "count": "6",
+    "hasNextPage": false
+  },
+  "bookings": {
+    "records": [
+      {
+        "name": "Разовое посещение · 2026-10-24T13:15:00.000Z",
+        "status": "ATTENDED",
+        "paymentStatus": "PAID",
+        "id": "0f747acd-468b-46f7-9aa9-00435ce15310",
+        "personId": "3b7fd192-f464-406b-bbb5-184ba86842ab",
+        "membershipId": null,
+        "classSessionId": "6556c920-3120-45c7-a4d6-2844cb2c705c"
+      },
+      {
+        "name": "Разовое посещение · 2026-10-24T11:15:00.000Z",
+        "status": "ATTENDED",
+        "paymentStatus": "PAID",
+        "id": "32e4a945-f525-4316-84bb-8ecac216ff71",
+        "personId": "3b7fd192-f464-406b-bbb5-184ba86842ab",
+        "membershipId": null,
+        "classSessionId": "6881acbf-089a-4981-95e6-8111580097b8"
+      },
+      {
+        "name": "Посещение · 2026-10-24T11:15",
+        "status": "ATTENDED",
+        "paymentStatus": "NOT_REQUIRED",
+        "id": "3861ce5a-4c24-41d9-b615-88b6c0fb402c",
+        "personId": "d99f86d4-5bb8-43f0-b4c4-3c28228c7a30",
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "classSessionId": "6881acbf-089a-4981-95e6-8111580097b8"
+      },
+      {
+        "name": "Разовое посещение · 2026-10-29T09:15:00.000Z",
+        "status": "CANCELLED_BY_STUDIO",
+        "paymentStatus": "WAIVED",
+        "id": "6672da99-b434-48ee-8275-21d89e1330e7",
+        "personId": "a8d9de2a-d790-4322-bfd6-8b1548e39da6",
+        "membershipId": null,
+        "classSessionId": "58e0db1f-1796-4745-8cb4-dd872b63ed7e"
+      },
+      {
+        "name": "Запись · 2026-10-28T08:15",
+        "status": "CANCELLED_BY_STUDIO",
+        "paymentStatus": "NOT_REQUIRED",
+        "id": "8caf0e0d-a09d-40e7-9581-d3aff53d8b50",
+        "personId": "d99f86d4-5bb8-43f0-b4c4-3c28228c7a30",
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "classSessionId": "3fc9eb5c-9007-4420-ba92-eff08619daef"
+      },
+      {
+        "name": "Посещение · 2026-10-24T13:15",
+        "status": "ATTENDED",
+        "paymentStatus": "NOT_REQUIRED",
+        "id": "95a37cc1-2a34-4819-8141-c6e80e50242b",
+        "personId": "d99f86d4-5bb8-43f0-b4c4-3c28228c7a30",
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "classSessionId": "6556c920-3120-45c7-a4d6-2844cb2c705c"
+      },
+      {
+        "name": "Разовое посещение · 2026-10-28T08:15:00.000Z",
+        "status": "CANCELLED_BY_STUDIO",
+        "paymentStatus": "WAIVED",
+        "id": "b9b18e15-a01b-4f48-8a09-4358c799a67d",
+        "personId": "3b7fd192-f464-406b-bbb5-184ba86842ab",
+        "membershipId": null,
+        "classSessionId": "3fc9eb5c-9007-4420-ba92-eff08619daef"
+      },
+      {
+        "name": "Разовое посещение · 2026-10-24T07:15:00.000Z",
+        "status": "ATTENDED",
+        "paymentStatus": "PAID",
+        "id": "f31dcf06-e12c-4177-b830-c8ef16c77f3f",
+        "personId": "a8d9de2a-d790-4322-bfd6-8b1548e39da6",
+        "membershipId": null,
+        "classSessionId": "644bdb6b-1e60-49dd-92a6-46d72ed5f8a2"
+      }
+    ],
+    "count": "8",
+    "hasNextPage": false
+  },
+  "memberships": {
+    "records": [
+      {
+        "name": "Группа 4 · 2026-10-20",
+        "visitsGranted": 4,
+        "visitsReserved": 0,
+        "visitsConsumed": 2,
+        "visitsAvailable": 2,
+        "id": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "personId": "d99f86d4-5bb8-43f0-b4c4-3c28228c7a30"
+      }
+    ],
+    "count": "1",
+    "hasNextPage": false
+  },
+  "transactions": {
+    "records": [
+      {
+        "name": "Освобождение резерва · отмена занятия",
+        "transactionType": "RELEASE",
+        "visitDelta": 1,
+        "id": "99fd46bf-d044-4c65-b838-1405c0dde6dc",
+        "paymentId": null,
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "bookingId": "8caf0e0d-a09d-40e7-9581-d3aff53d8b50"
+      },
+      {
+        "name": "Списание · 2026-10-24T13:15",
+        "transactionType": "CONSUME",
+        "visitDelta": -1,
+        "id": "9def8323-7220-4ff9-831f-6051d17ebc32",
+        "paymentId": null,
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "bookingId": "95a37cc1-2a34-4819-8141-c6e80e50242b"
+      },
+      {
+        "name": "Списание · 2026-10-24T11:15",
+        "transactionType": "CONSUME",
+        "visitDelta": -1,
+        "id": "c3de5d1e-f6e3-4774-a917-d2a9e3776b90",
+        "paymentId": null,
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "bookingId": "3861ce5a-4c24-41d9-b615-88b6c0fb402c"
+      },
+      {
+        "name": "Начисление · Группа 4",
+        "transactionType": "GRANT",
+        "visitDelta": 4,
+        "id": "d21cb0c3-5718-4083-a4f4-7f3bd2599812",
+        "paymentId": "f532848d-9c97-4c3d-b4c9-d7f0ee4f1df8",
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "bookingId": null
+      },
+      {
+        "name": "Резерв · 2026-10-28T08:15",
+        "transactionType": "RESERVE",
+        "visitDelta": -1,
+        "id": "d5dab39b-098f-4e77-be64-390695de20da",
+        "paymentId": null,
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "bookingId": "8caf0e0d-a09d-40e7-9581-d3aff53d8b50"
+      }
+    ],
+    "count": "5",
+    "hasNextPage": false
+  },
+  "sessions": {
+    "records": [
+      {
+        "name": "Группа на реформере",
+        "startsAt": "2026-10-28T08:15:00.000Z",
+        "status": "CANCELLED_BY_STUDIO",
+        "bookedCount": 0,
+        "attendedCount": 0,
+        "id": "3fc9eb5c-9007-4420-ba92-eff08619daef",
+        "creationRequest": "{\"status\":\"PLANNED\",\"participants\":[{\"personId\":\"d99f86d4-5bb8-43f0-b4c4-3c28228c7a30\",\"membershipId\":\"8e21a176-6eb3-4d57-a036-d588a015dcff\"},{\"personId\":\"3b7fd192-f464-406b-bbb5-184ba86842ab\",\"paymentId\":\"8ad657d5-335f-4ff1-84f2-b9665ccdf473\",\"productId\":\"527d7363-9360-4435-84c1-5001e07f0317\"}],\"attendanceReason\":\"\"}",
+        "mutationLock": ""
+      },
+      {
+        "name": "Персональное на оборудовании",
+        "startsAt": "2026-10-29T09:15:00.000Z",
+        "status": "CANCELLED_BY_STUDIO",
+        "bookedCount": 0,
+        "attendedCount": 0,
+        "id": "58e0db1f-1796-4745-8cb4-dd872b63ed7e",
+        "creationRequest": "{\"status\":\"PLANNED\",\"participants\":[{\"personId\":\"a8d9de2a-d790-4322-bfd6-8b1548e39da6\",\"paymentId\":\"795d4b0d-966f-44f5-a38c-99ef5c82f066\",\"productId\":\"37bc81f5-628f-49a6-8e8d-166a540fc8b3\"}],\"attendanceReason\":\"\"}",
+        "mutationLock": ""
+      },
+      {
+        "name": "Персональное на оборудовании",
+        "startsAt": "2026-10-24T07:15:00.000Z",
+        "status": "COMPLETED",
+        "bookedCount": 1,
+        "attendedCount": 1,
+        "id": "644bdb6b-1e60-49dd-92a6-46d72ed5f8a2",
+        "creationRequest": "{\"status\":\"COMPLETED\",\"participants\":[{\"personId\":\"a8d9de2a-d790-4322-bfd6-8b1548e39da6\",\"paymentId\":\"1b22c92e-1a34-4648-b5ed-547aa5194601\",\"productId\":\"37bc81f5-628f-49a6-8e8d-166a540fc8b3\"}],\"attendanceReason\":\"STAGE-QA-20261025-0903: синтетическая проверка оплаты\"}",
+        "mutationLock": ""
+      },
+      {
+        "name": "Группа на реформере",
+        "startsAt": "2026-10-24T13:15:00.000Z",
+        "status": "COMPLETED",
+        "bookedCount": 2,
+        "attendedCount": 2,
+        "id": "6556c920-3120-45c7-a4d6-2844cb2c705c",
+        "creationRequest": "{\"status\":\"COMPLETED\",\"participants\":[{\"personId\":\"d99f86d4-5bb8-43f0-b4c4-3c28228c7a30\",\"membershipId\":\"8e21a176-6eb3-4d57-a036-d588a015dcff\"},{\"personId\":\"3b7fd192-f464-406b-bbb5-184ba86842ab\",\"paymentId\":\"cd397273-aa60-4a9b-b3a3-56d8acfd8bd7\",\"productId\":\"527d7363-9360-4435-84c1-5001e07f0317\"}],\"attendanceReason\":\"STAGE-QA-20261025-0903: финальная проверка времени выполнения\"}",
+        "mutationLock": ""
+      },
+      {
+        "name": "Группа на реформере",
+        "startsAt": "2026-10-24T11:15:00.000Z",
+        "status": "COMPLETED",
+        "bookedCount": 2,
+        "attendedCount": 2,
+        "id": "6881acbf-089a-4981-95e6-8111580097b8",
+        "creationRequest": "{\"status\":\"COMPLETED\",\"participants\":[{\"personId\":\"d99f86d4-5bb8-43f0-b4c4-3c28228c7a30\",\"membershipId\":\"8e21a176-6eb3-4d57-a036-d588a015dcff\"},{\"personId\":\"3b7fd192-f464-406b-bbb5-184ba86842ab\",\"paymentId\":\"95e53699-d02d-4eb2-852d-d426581ed8ef\",\"productId\":\"527d7363-9360-4435-84c1-5001e07f0317\"}],\"attendanceReason\":\"STAGE-QA-20261025-0903: смешанная группа, тест\"}",
+        "mutationLock": ""
+      }
+    ],
+    "count": "5",
+    "hasNextPage": false
+  },
+  "events": {
+    "records": [
+      {
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "classSessionId": "3fc9eb5c-9007-4420-ba92-eff08619daef",
+        "details": "",
+        "id": "108d4fc0-69f1-5a92-b9b1-3796389bafcc",
+        "name": "Клиент добавлен в тренировку",
+        "outcome": "SUCCESS",
+        "bookingId": "8caf0e0d-a09d-40e7-9581-d3aff53d8b50",
+        "eventType": "BOOKING_CREATED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "",
+        "details": "{\"paymentId\":\"1b22c92e-1a34-4648-b5ed-547aa5194601\",\"context\":\"{\\\"personId\\\":\\\"a8d9de2a-d790-4322-bfd6-8b1548e39da6\\\",\\\"productId\\\":\\\"37bc81f5-628f-49a6-8e8d-166a540fc8b3\\\",\\\"sessionFormat\\\":\\\"PERSONAL_EQUIPMENT\\\",\\\"startsAt\\\":\\\"2026-10-24T07:15:00.000Z\\\",\\\"durationMinutes\\\":55,\\\"status\\\":\\\"COMPLETED\\\"}\"}",
+        "id": "1b22c92e-1a34-4648-b5ed-547aa5194601",
+        "name": "Получена разовая оплата",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "PAYMENT_CONFIRMED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "644bdb6b-1e60-49dd-92a6-46d72ed5f8a2",
+        "details": "{\"paymentId\":\"1b22c92e-1a34-4648-b5ed-547aa5194601\",\"paymentStatus\":\"PAID\"}",
+        "id": "1bbcd43d-dc16-4fb7-b4c1-248118686297",
+        "name": "Разовый участник добавлен",
+        "outcome": "SUCCESS",
+        "bookingId": "f31dcf06-e12c-4177-b830-c8ef16c77f3f",
+        "eventType": "BOOKING_CREATED"
+      },
+      {
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "classSessionId": "3fc9eb5c-9007-4420-ba92-eff08619daef",
+        "details": "",
+        "id": "38a93f18-b4e8-5ba0-8fe4-079be7fe6d36",
+        "name": "Клиент убран из тренировки студией",
+        "outcome": "SUCCESS",
+        "bookingId": "8caf0e0d-a09d-40e7-9581-d3aff53d8b50",
+        "eventType": "BOOKING_CANCELLED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "3fc9eb5c-9007-4420-ba92-eff08619daef",
+        "details": "{\"name\":\"Группа на реформере\",\"startsAt\":\"2026-10-28T08:15:00.000Z\",\"endsAt\":\"2026-10-28T09:10:00.000Z\",\"status\":\"PLANNED\",\"capacity\":4,\"participants\":[{\"personId\":\"d99f86d4-5bb8-43f0-b4c4-3c28228c7a30\",\"membershipId\":\"8e21a176-6eb3-4d57-a036-d588a015dcff\"},{\"personId\":\"3b7fd192-f464-406b-bbb5-184ba86842ab\",\"paymentId\":\"8ad657d5-335f-4ff1-84f2-b9665ccdf473\",\"productId\":\"527d7363-9360-4435-84c1-5001e07f0317\"}],\"attendanceReason\":\"\"}",
+        "id": "3fc9eb5c-9007-4420-ba92-eff08619daef",
+        "name": "Создание тренировки",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "SESSION_CREATED"
+      },
+      {
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "classSessionId": "6881acbf-089a-4981-95e6-8111580097b8",
+        "details": "{\"personId\":\"d99f86d4-5bb8-43f0-b4c4-3c28228c7a30\",\"transactionId\":\"c3de5d1e-f6e3-4774-a917-d2a9e3776b90\",\"startsAt\":\"2026-10-24T11:15:00.000Z\",\"reason\":\"STAGE-QA-20261025-0903: смешанная группа, тест\",\"source\":\"ADMIN\",\"sourceDetails\":null}",
+        "id": "42835112-d7ea-512a-8365-8b460c08cf53",
+        "name": "Внесено прошедшее посещение",
+        "outcome": "SUCCESS",
+        "bookingId": "3861ce5a-4c24-41d9-b615-88b6c0fb402c",
+        "eventType": "BOOKING_CREATED"
+      },
+      {
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "classSessionId": "6556c920-3120-45c7-a4d6-2844cb2c705c",
+        "details": "{\"personId\":\"d99f86d4-5bb8-43f0-b4c4-3c28228c7a30\",\"transactionId\":\"9def8323-7220-4ff9-831f-6051d17ebc32\",\"startsAt\":\"2026-10-24T13:15:00.000Z\",\"reason\":\"STAGE-QA-20261025-0903: финальная проверка времени выполнения\",\"source\":\"ADMIN\",\"sourceDetails\":null}",
+        "id": "5811d5e5-c008-553b-bf08-ed10a8d7630f",
+        "name": "Внесено прошедшее посещение",
+        "outcome": "SUCCESS",
+        "bookingId": "95a37cc1-2a34-4819-8141-c6e80e50242b",
+        "eventType": "BOOKING_CREATED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "58e0db1f-1796-4745-8cb4-dd872b63ed7e",
+        "details": "{\"name\":\"Персональное на оборудовании\",\"startsAt\":\"2026-10-29T09:15:00.000Z\",\"endsAt\":\"2026-10-29T10:10:00.000Z\",\"status\":\"PLANNED\",\"capacity\":1,\"participants\":[{\"personId\":\"a8d9de2a-d790-4322-bfd6-8b1548e39da6\",\"paymentId\":\"795d4b0d-966f-44f5-a38c-99ef5c82f066\",\"productId\":\"37bc81f5-628f-49a6-8e8d-166a540fc8b3\"}],\"attendanceReason\":\"\"}",
+        "id": "58e0db1f-1796-4745-8cb4-dd872b63ed7e",
+        "name": "Создание тренировки",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "SESSION_CREATED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "644bdb6b-1e60-49dd-92a6-46d72ed5f8a2",
+        "details": "{\"name\":\"Персональное на оборудовании\",\"startsAt\":\"2026-10-24T07:15:00.000Z\",\"endsAt\":\"2026-10-24T08:10:00.000Z\",\"status\":\"COMPLETED\",\"capacity\":1,\"participants\":[{\"personId\":\"a8d9de2a-d790-4322-bfd6-8b1548e39da6\",\"paymentId\":\"1b22c92e-1a34-4648-b5ed-547aa5194601\",\"productId\":\"37bc81f5-628f-49a6-8e8d-166a540fc8b3\"}],\"attendanceReason\":\"STAGE-QA-20261025-0903: синтетическая проверка оплаты\"}",
+        "id": "644bdb6b-1e60-49dd-92a6-46d72ed5f8a2",
+        "name": "Создание тренировки",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "SESSION_CREATED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "6556c920-3120-45c7-a4d6-2844cb2c705c",
+        "details": "{\"name\":\"Группа на реформере\",\"startsAt\":\"2026-10-24T13:15:00.000Z\",\"endsAt\":\"2026-10-24T14:10:00.000Z\",\"status\":\"COMPLETED\",\"capacity\":4,\"participants\":[{\"personId\":\"d99f86d4-5bb8-43f0-b4c4-3c28228c7a30\",\"membershipId\":\"8e21a176-6eb3-4d57-a036-d588a015dcff\"},{\"personId\":\"3b7fd192-f464-406b-bbb5-184ba86842ab\",\"paymentId\":\"cd397273-aa60-4a9b-b3a3-56d8acfd8bd7\",\"productId\":\"527d7363-9360-4435-84c1-5001e07f0317\"}],\"attendanceReason\":\"STAGE-QA-20261025-0903: финальная проверка времени выполнения\"}",
+        "id": "6556c920-3120-45c7-a4d6-2844cb2c705c",
+        "name": "Создание тренировки",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "SESSION_CREATED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "6881acbf-089a-4981-95e6-8111580097b8",
+        "details": "{\"name\":\"Группа на реформере\",\"startsAt\":\"2026-10-24T11:15:00.000Z\",\"endsAt\":\"2026-10-24T12:10:00.000Z\",\"status\":\"COMPLETED\",\"capacity\":4,\"participants\":[{\"personId\":\"d99f86d4-5bb8-43f0-b4c4-3c28228c7a30\",\"membershipId\":\"8e21a176-6eb3-4d57-a036-d588a015dcff\"},{\"personId\":\"3b7fd192-f464-406b-bbb5-184ba86842ab\",\"paymentId\":\"95e53699-d02d-4eb2-852d-d426581ed8ef\",\"productId\":\"527d7363-9360-4435-84c1-5001e07f0317\"}],\"attendanceReason\":\"STAGE-QA-20261025-0903: смешанная группа, тест\"}",
+        "id": "6881acbf-089a-4981-95e6-8111580097b8",
+        "name": "Создание тренировки",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "SESSION_CREATED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "6556c920-3120-45c7-a4d6-2844cb2c705c",
+        "details": "{\"paymentId\":\"cd397273-aa60-4a9b-b3a3-56d8acfd8bd7\",\"paymentStatus\":\"PAID\"}",
+        "id": "6f8ec69c-9f21-497c-a8bd-a1c27be53250",
+        "name": "Разовый участник добавлен",
+        "outcome": "SUCCESS",
+        "bookingId": "0f747acd-468b-46f7-9aa9-00435ce15310",
+        "eventType": "BOOKING_CREATED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "3fc9eb5c-9007-4420-ba92-eff08619daef",
+        "details": "{\"bookingIds\":[\"8caf0e0d-a09d-40e7-9581-d3aff53d8b50\",\"b9b18e15-a01b-4f48-8a09-4358c799a67d\"]}",
+        "id": "77e5544e-5f9a-41c4-b0c3-68590e7fc253",
+        "name": "Отмена занятия",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "SESSION_CANCELLED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "",
+        "details": "{\"paymentId\":\"795d4b0d-966f-44f5-a38c-99ef5c82f066\",\"context\":\"{\\\"personId\\\":\\\"a8d9de2a-d790-4322-bfd6-8b1548e39da6\\\",\\\"productId\\\":\\\"37bc81f5-628f-49a6-8e8d-166a540fc8b3\\\",\\\"sessionFormat\\\":\\\"PERSONAL_EQUIPMENT\\\",\\\"startsAt\\\":\\\"2026-10-29T09:15:00.000Z\\\",\\\"durationMinutes\\\":55,\\\"status\\\":\\\"PLANNED\\\"}\"}",
+        "id": "795d4b0d-966f-44f5-a38c-99ef5c82f066",
+        "name": "Создан долг за тренировку",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "PAYMENT_EXPECTED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "",
+        "details": "{\"paymentId\":\"8ad657d5-335f-4ff1-84f2-b9665ccdf473\",\"context\":\"{\\\"personId\\\":\\\"3b7fd192-f464-406b-bbb5-184ba86842ab\\\",\\\"productId\\\":\\\"527d7363-9360-4435-84c1-5001e07f0317\\\",\\\"sessionFormat\\\":\\\"GROUP_REFORMER\\\",\\\"startsAt\\\":\\\"2026-10-28T08:15:00.000Z\\\",\\\"durationMinutes\\\":55,\\\"status\\\":\\\"PLANNED\\\"}\"}",
+        "id": "8ad657d5-335f-4ff1-84f2-b9665ccdf473",
+        "name": "Создан долг за тренировку",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "PAYMENT_EXPECTED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "58e0db1f-1796-4745-8cb4-dd872b63ed7e",
+        "details": "{\"paymentId\":\"795d4b0d-966f-44f5-a38c-99ef5c82f066\",\"paymentStatus\":\"EXPECTED\"}",
+        "id": "8f34f2e5-166e-434c-b049-dcfa43920e69",
+        "name": "Разовый участник добавлен",
+        "outcome": "SUCCESS",
+        "bookingId": "6672da99-b434-48ee-8275-21d89e1330e7",
+        "eventType": "BOOKING_CREATED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "",
+        "details": "{\"paymentId\":\"95e53699-d02d-4eb2-852d-d426581ed8ef\",\"context\":\"{\\\"personId\\\":\\\"3b7fd192-f464-406b-bbb5-184ba86842ab\\\",\\\"productId\\\":\\\"527d7363-9360-4435-84c1-5001e07f0317\\\",\\\"sessionFormat\\\":\\\"GROUP_REFORMER\\\",\\\"startsAt\\\":\\\"2026-10-24T11:15:00.000Z\\\",\\\"durationMinutes\\\":55,\\\"status\\\":\\\"COMPLETED\\\"}\"}",
+        "id": "95e53699-d02d-4eb2-852d-d426581ed8ef",
+        "name": "Получена разовая оплата",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "PAYMENT_CONFIRMED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "3fc9eb5c-9007-4420-ba92-eff08619daef",
+        "details": "",
+        "id": "b39c7a24-d59b-45aa-a420-45b05bc082c0",
+        "name": "Отмена записи",
+        "outcome": "SUCCESS",
+        "bookingId": "b9b18e15-a01b-4f48-8a09-4358c799a67d",
+        "eventType": "BOOKING_CANCELLED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "58e0db1f-1796-4745-8cb4-dd872b63ed7e",
+        "details": "{\"bookingIds\":[\"6672da99-b434-48ee-8275-21d89e1330e7\"]}",
+        "id": "b7150686-74f6-4bc6-b70f-04efba103649",
+        "name": "Отмена занятия",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "SESSION_CANCELLED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "",
+        "details": "{\"paymentId\":\"cd397273-aa60-4a9b-b3a3-56d8acfd8bd7\",\"context\":\"{\\\"personId\\\":\\\"3b7fd192-f464-406b-bbb5-184ba86842ab\\\",\\\"productId\\\":\\\"527d7363-9360-4435-84c1-5001e07f0317\\\",\\\"sessionFormat\\\":\\\"GROUP_REFORMER\\\",\\\"startsAt\\\":\\\"2026-10-24T13:15:00.000Z\\\",\\\"durationMinutes\\\":55,\\\"status\\\":\\\"COMPLETED\\\"}\"}",
+        "id": "cd397273-aa60-4a9b-b3a3-56d8acfd8bd7",
+        "name": "Получена разовая оплата",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "PAYMENT_CONFIRMED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "58e0db1f-1796-4745-8cb4-dd872b63ed7e",
+        "details": "",
+        "id": "dc0371a5-a2eb-49fc-9c81-73ad62d088ba",
+        "name": "Отмена записи",
+        "outcome": "SUCCESS",
+        "bookingId": "6672da99-b434-48ee-8275-21d89e1330e7",
+        "eventType": "BOOKING_CANCELLED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "6881acbf-089a-4981-95e6-8111580097b8",
+        "details": "{\"paymentId\":\"95e53699-d02d-4eb2-852d-d426581ed8ef\",\"paymentStatus\":\"PAID\"}",
+        "id": "e0846429-5074-4e0d-8384-bceff24fb6b1",
+        "name": "Разовый участник добавлен",
+        "outcome": "SUCCESS",
+        "bookingId": "32e4a945-f525-4316-84bb-8ecac216ff71",
+        "eventType": "BOOKING_CREATED"
+      },
+      {
+        "membershipId": "8e21a176-6eb3-4d57-a036-d588a015dcff",
+        "classSessionId": "",
+        "details": "{\"paymentId\":\"f532848d-9c97-4c3d-b4c9-d7f0ee4f1df8\",\"membershipId\":\"8e21a176-6eb3-4d57-a036-d588a015dcff\",\"transactionId\":\"d21cb0c3-5718-4083-a4f4-7f3bd2599812\",\"personId\":\"d99f86d4-5bb8-43f0-b4c4-3c28228c7a30\",\"productId\":\"aeffac2d-ef74-434a-889d-c8e9c95b9087\",\"amount\":8800,\"paymentMethod\":\"CASH\",\"paidAt\":\"2026-10-19T21:00:00.000Z\",\"idempotencyKey\":\"057a7647-375c-4663-9068-2dbb67b136c8\"}",
+        "id": "f532848d-9c97-4c3d-b4c9-d7f0ee4f1df8",
+        "name": "Оплата получена и пакет оформлен",
+        "outcome": "SUCCESS",
+        "bookingId": "",
+        "eventType": "PAYMENT_CONFIRMED"
+      },
+      {
+        "membershipId": "",
+        "classSessionId": "3fc9eb5c-9007-4420-ba92-eff08619daef",
+        "details": "{\"paymentId\":\"8ad657d5-335f-4ff1-84f2-b9665ccdf473\",\"paymentStatus\":\"EXPECTED\"}",
+        "id": "fb1a2b1b-ec00-4853-833e-29875165befa",
+        "name": "Разовый участник добавлен",
+        "outcome": "SUCCESS",
+        "bookingId": "b9b18e15-a01b-4f48-8a09-4358c799a67d",
+        "eventType": "BOOKING_CREATED"
+      }
+    ],
+    "count": 24
+  }
+}
