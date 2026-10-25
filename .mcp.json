@@ -26,7 +26,9 @@
     "twenty_stage": {
       "url": "http://crm-stage.lan/mcp",
       "type": "http",
-      "http_headers_helper": "/bin/zsh /Users/evgenijaleksandrov/Desktop/repo/repo/Kate/crm/crm-twenty/scripts/get-twenty-stage-mcp-headers.sh"
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjYyYTM2YmE5LWVjYTQtNDE4NS04YzM3LTBmNGI2MDdlYTE1MCJ9.eyJzdWIiOiI2NWRjZWRlOC1iYTY3LTQ1ZDEtYjRmZC02NGQ5MjI0YWI4Y2EiLCJ0eXBlIjoiQVBJX0tFWSIsIndvcmtzcGFjZUlkIjoiNjVkY2VkZTgtYmE2Ny00NWQxLWI0ZmQtNjRkOTIyNGFiOGNhIiwiaWF0IjoxNzkyOTE0MTI5LCJleHAiOjQ5NDY0Mjc3MDUsImp0aSI6IjdhYTYyNWIzLTkwZGQtNDM0Ny1hNTJlLTM0MmUxZTgyZTRjNCJ9.Aip9W6DxIqHyZdPoY4Cy2kv54JzxX3saXWv9Jao-ElBYTaQ3IWg0cuq2SOiyPSFv2cvDp-9mYu2Jdk5BXXJA-A"
+      }
     }
   }
 }

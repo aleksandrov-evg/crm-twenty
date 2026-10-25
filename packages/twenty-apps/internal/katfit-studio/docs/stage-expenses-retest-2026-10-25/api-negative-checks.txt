@@ -1,0 +1,3 @@
+unauthenticated report 500 "Missing authentication token"
+invalid amount 400 {"error":"Сумма должна быть положительным целым числом копеек (строка, до 12 цифр)"}
+invalid calendar date 400 {"error":"Дата выплаты: YYYY-MM-DD или null"}

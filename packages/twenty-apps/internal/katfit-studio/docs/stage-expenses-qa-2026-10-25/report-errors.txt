@@ -1,0 +1,11 @@
+Observed after UI edits, independently queried via stage API.
+POST http://crm-stage.lan/s/studio/expenses/report
+Bodies: {"month":"2026-10"}, {"month":"2026-11"}
+Each returned HTTP 409 for each of these saved values:
+- amount.amountMicros = 0
+- amount.amountMicros = -1250000
+- accruedOn = "2026-10-15" (amount.amountMicros = 1500250000)
+Response in all six cases:
+{"error":"Некорректный расход 54cbad6e-08c7-4dfe-8541-6aff251888ef: требуется исправление данных CRM"}
+After restoring amount to 1500250000 and accruedOn to 2026-10-01 through UI, both reports returned HTTP 200.
+No headers or credentials retained. Browser mutation request/response traffic was not captured; these are direct report API responses.
