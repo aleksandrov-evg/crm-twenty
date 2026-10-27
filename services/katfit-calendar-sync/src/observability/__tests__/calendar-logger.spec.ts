@@ -1,6 +1,24 @@
 import { createCalendarLogger, readCalendarLogLevel } from '../calendar-logger';
 
 describe('calendar structured logging', () => {
+  it('retains safe request diagnostics and rejects arbitrary strings and invalid sizes', () => {
+    const write = jest.fn();
+    const logger = createCalendarLogger('info', write);
+    logger.event('error', 'calendar.request.failed', {
+      attemptId: '16ba6f55-90d4-4775-ab0e-de84d7aaf0b1',
+      requestMethod: 'GET',
+      reason: 'UND_ERR_CONNECT_TIMEOUT',
+      reportBytes: 128,
+      resourceBytes: -1,
+    });
+    expect(JSON.parse(write.mock.calls[0][0])).toMatchObject({
+      attemptId: '16ba6f55-90d4-4775-ab0e-de84d7aaf0b1',
+      requestMethod: 'GET', reason: 'UND_ERR_CONNECT_TIMEOUT', reportBytes: 128,
+    });
+    expect(JSON.parse(write.mock.calls[0][0])).not.toHaveProperty('resourceBytes');
+    logger.event('error', 'calendar.request.failed', { attemptId: 'private-token', reason: 'private-url' });
+    expect(write.mock.calls[1][0]).not.toMatch(/private-/);
+  });
   it('logs only allowlisted calendar difference fields', () => {
     const write = jest.fn();
     createCalendarLogger('info', write).event('error', 'calendar.snapshot.comparison', {

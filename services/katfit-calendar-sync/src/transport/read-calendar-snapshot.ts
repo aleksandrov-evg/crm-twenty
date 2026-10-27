@@ -1,4 +1,6 @@
 import { isCalendarResourceUrl } from './is-calendar-resource-url';
+import { randomUUID } from 'node:crypto';
+import { describeCalendarNetworkError } from '../observability/describe-calendar-network-error';
 import { describeCalendarDataDifference } from './describe-calendar-data-difference';
 import { readCalendarResource } from './read-calendar-resource';
 import { calendarLogger } from '../observability/calendar-logger';
@@ -53,9 +55,10 @@ export const readCalendarSnapshot = async (
   calendarUrl: string,
   fetch: typeof globalThis.fetch,
 ): Promise<CalendarSnapshotResult> => {
+  const attemptId = randomUUID();
   let httpStatus: number | undefined;
   const reject = (reason: string): CalendarSnapshotResult => {
-    calendarLogger.event('error', 'calendar.snapshot.rejected', { reason, httpStatus });
+    calendarLogger.event('error', 'calendar.snapshot.rejected', { reason, httpStatus, attemptId, requestMethod: 'REPORT' });
     return { status: 'invalid-snapshot' };
   };
   if (!isYandexCalDavTarget(calendarUrl)) return reject('CALDAV_SNAPSHOT_TARGET');
@@ -72,8 +75,12 @@ export const readCalendarSnapshot = async (
     httpStatus = response.status;
     if (response.status === 401) return { status: 'auth-required' };
     if (response.status === 403) return { status: 'forbidden' };
-    if (response.status === 429 || response.status >= 500)
+    if (response.status === 429 || response.status >= 500) {
+      calendarLogger.event('error', 'calendar.request.failed', {
+        attemptId, requestMethod: 'REPORT', httpStatus, reason: 'CALDAV_HTTP_REJECTED',
+      });
       return { status: 'unavailable' };
+    }
     if (response.status !== 207) return reject('CALDAV_SNAPSHOT_HTTP_STATUS');
     if (!response.headers.get('content-type')?.toLowerCase().includes('xml'))
       return reject('CALDAV_SNAPSHOT_CONTENT_TYPE');
@@ -133,7 +140,7 @@ export const readCalendarSnapshot = async (
       if (!isCalendarEtag(etag) || !etag.startsWith('"')) {
         if (++fallbackReads > 50) return reject('CALDAV_SNAPSHOT_ETAG_READ_LIMIT');
         // REPORT and HTTP validators may differ; confirm the HTTP value with matching content.
-        const resource = await readCalendarResource(calendarUrl, url, fetch);
+        const resource = await readCalendarResource(calendarUrl, url, fetch, { attemptId });
         if (resource.status === 'auth-required' || resource.status === 'forbidden' || resource.status === 'unavailable')
           return { status: resource.status };
         if (resource.status !== 'read') return reject('CALDAV_SNAPSHOT_WEAK_ETAG');
@@ -143,6 +150,10 @@ export const readCalendarSnapshot = async (
         if (resourceData !== reportData) {
           const unfold = (value: string) => value.replace(/\n[ \t]/g, '');
           calendarLogger.event('error', 'calendar.snapshot.comparison', {
+            attemptId,
+            requestMethod: 'GET',
+            reportBytes: Buffer.byteLength(calendarData),
+            resourceBytes: Buffer.byteLength(resource.calendarData),
             differenceFields: describeCalendarDataDifference(calendarData, resource.calendarData),
             result:
               resourceData.replace(/\n+$/, '') === reportData.replace(/\n+$/, '')
@@ -167,7 +178,14 @@ export const readCalendarSnapshot = async (
       resources.push({ url, etag, calendarData });
     }
     return { status: 'snapshot', resources };
-  } catch {
+  } catch (error: unknown) {
+    const networkReason = describeCalendarNetworkError(error);
+    calendarLogger.event('error', 'calendar.request.failed', {
+      attemptId, requestMethod: 'REPORT', httpStatus,
+      reason: receivedResponse && networkReason === 'CALDAV_NETWORK_UNCLASSIFIED'
+        ? 'CALDAV_RESPONSE_READ_FAILED'
+        : networkReason,
+    });
     return receivedResponse ? reject(validationStage) : { status: 'unavailable' };
   }
 };

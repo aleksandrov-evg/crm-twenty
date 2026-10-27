@@ -46,9 +46,9 @@ describe('readCalendarSnapshot', () => {
     const event = jest.spyOn(calendarLogger, 'event').mockImplementation();
     respond(String(body), Number(status));
     expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
-    expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.rejected', {
+    expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.rejected', expect.objectContaining({
       reason, httpStatus: status,
-    });
+    }));
     expect(JSON.stringify(event.mock.calls)).not.toContain('private-content');
     expect(JSON.stringify(event.mock.calls)).not.toContain(calendarUrl);
   });
@@ -104,10 +104,21 @@ describe('readCalendarSnapshot', () => {
       headers: { 'Content-Type': 'text/calendar', ETag: '"verified"' },
     }));
     expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
-    expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.comparison', {
+    expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.comparison', expect.objectContaining({
       result,
       differenceFields: result === 'content-different' ? ['uid'] : [],
-    });
+    }));
+    const comparison = event.mock.calls.find((call) => call[1] === 'calendar.snapshot.comparison')?.[2];
+    expect(comparison).toEqual(expect.objectContaining({
+      attemptId: expect.any(String),
+      requestMethod: 'GET',
+      reportBytes: Buffer.byteLength(calendarData),
+      resourceBytes: Buffer.byteLength(resourceData),
+    }));
+    expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.rejected', expect.objectContaining({
+      attemptId: comparison?.attemptId,
+      reason: 'CALDAV_SNAPSHOT_CHANGED_DURING_READ',
+    }));
     expect(JSON.stringify(event.mock.calls)).not.toContain('UID:');
     expect(JSON.stringify(event.mock.calls)).not.toContain(calendarUrl);
   });

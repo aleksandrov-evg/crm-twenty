@@ -1,4 +1,6 @@
 import { isCalendarEtag } from './is-calendar-etag';
+import { calendarLogger } from '../observability/calendar-logger';
+import { describeCalendarNetworkError } from '../observability/describe-calendar-network-error';
 import { readBoundedBody } from './read-bounded-body';
 import { isCalendarResourceUrl } from './is-calendar-resource-url';
 
@@ -16,6 +18,7 @@ export const readCalendarResource = async (
   calendarUrl: string,
   resourceUrl: string,
   fetch: typeof globalThis.fetch,
+  context: { attemptId?: string } = {},
 ): Promise<CalendarResourceRead> => {
   if (!isCalendarResourceUrl(calendarUrl, resourceUrl))
     return { status: 'invalid-resource' };
@@ -26,10 +29,16 @@ export const readCalendarResource = async (
       redirect: 'error',
       headers: { Accept: 'text/calendar', 'Cache-Control': 'no-cache' },
     });
-  } catch {
+  } catch (error: unknown) {
+    calendarLogger.event('error', 'calendar.request.failed', {
+      ...context, requestMethod: 'GET', reason: describeCalendarNetworkError(error),
+    });
     return { status: 'unavailable' };
   }
   if (response.status !== 200) {
+    calendarLogger.event('error', 'calendar.request.failed', {
+      ...context, requestMethod: 'GET', httpStatus: response.status, reason: 'CALDAV_HTTP_REJECTED',
+    });
     await response.body?.cancel().catch(() => undefined);
     if ([404, 410].includes(response.status)) return { status: 'not-found' };
     if (response.status === 401) return { status: 'auth-required' };
@@ -65,7 +74,12 @@ export const readCalendarResource = async (
     )
       return { status: 'invalid-resource' };
     return { status: 'read', etag, calendarData };
-  } catch {
+  } catch (error: unknown) {
+    const networkReason = describeCalendarNetworkError(error);
+    calendarLogger.event('error', 'calendar.request.failed', {
+      ...context, requestMethod: 'GET', httpStatus: response.status,
+      reason: networkReason === 'CALDAV_NETWORK_UNCLASSIFIED' ? 'CALDAV_RESPONSE_READ_FAILED' : networkReason,
+    });
     return { status: 'invalid-resource' };
   }
 };

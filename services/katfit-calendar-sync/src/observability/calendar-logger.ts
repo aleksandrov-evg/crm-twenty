@@ -6,6 +6,10 @@ import {
 export type CalendarLogLevel = 'silent' | 'error' | 'info' | 'debug';
 type EventLevel = Exclude<CalendarLogLevel, 'silent'>;
 type Fields = {
+  attemptId?: string;
+  requestMethod?: 'REPORT' | 'GET';
+  reportBytes?: number;
+  resourceBytes?: number;
   differenceFields?: string[];
   stage?: string;
   configurationFields?: string[];
@@ -44,6 +48,7 @@ const EVENTS = new Set([
   'calendar.snapshot',
   'calendar.snapshot.rejected',
   'calendar.snapshot.comparison',
+  'calendar.request.failed',
   'crm.creation',
   'calendar.description',
   'calendar.schedule',
@@ -101,6 +106,15 @@ const LABELS = new Set([
   'rate-limited',
 ]);
 const REASONS = new Set<string>([
+  'CALDAV_NETWORK_UNCLASSIFIED',
+  'CALDAV_HTTP_REJECTED',
+  'CALDAV_RESPONSE_READ_FAILED',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_BODY_TIMEOUT',
+  'UND_ERR_SOCKET',
+  'ECONNRESET',
+  'ABORT_ERR',
   ...CALENDAR_CONFIGURATION_CODES,
   'CALDAV_SNAPSHOT_ETAG_READ_LIMIT',
   'CALDAV_SNAPSHOT_CHANGED_DURING_READ',
@@ -250,6 +264,7 @@ export const createCalendarLogger = (
     }
     for (const key of [
       'operationId',
+      'attemptId',
       'connectionId',
       'classSessionId',
     ] as const) {
@@ -270,7 +285,9 @@ export const createCalendarLogger = (
     const httpStatus = fields.httpStatus;
     if (typeof httpStatus === 'number' && Number.isInteger(httpStatus) && httpStatus >= 100 && httpStatus <= 599)
       safe.httpStatus = httpStatus;
-    for (const key of ['count', 'durationMs'] as const) {
+    if (fields.requestMethod === 'REPORT' || fields.requestMethod === 'GET')
+      safe.requestMethod = fields.requestMethod;
+    for (const key of ['count', 'durationMs', 'reportBytes', 'resourceBytes'] as const) {
       const value = fields[key];
       if (typeof value === 'number' && Number.isFinite(value) && value >= 0)
         safe[key] = value;

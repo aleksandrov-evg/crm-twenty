@@ -670,6 +670,17 @@ CALENDAR_CANCELLATION_REVIEW_ID='UUID запроса из списка' npm run 
 
 ## Структурированные логи и debug-режим
 
+Ошибки чтения календаря содержат `attemptId` для связи REPORT, GET и отклонения
+снимка. `calendar.snapshot.comparison` выводит `differenceFields` (только имена
+стандартных полей), `reportBytes` и `resourceBytes`. Значения полей, URL, UID и
+ETag не выводятся. Неизвестные имена свойств объединяются в `other`.
+`calendar.request.failed` содержит `requestMethod`, HTTP-статус при его наличии
+и безопасный код причины: например `ENOTFOUND`, `ECONNRESET`,
+`UND_ERR_CONNECT_TIMEOUT`, `CALDAV_HTTP_REJECTED`. Неизвестная сетевая ошибка
+обозначается `CALDAV_NETWORK_UNCLASSIFIED`; текст исключения не публикуется.
+Эти ошибки видны при `CALENDAR_LOG_LEVEL=info`; включать `debug` не требуется.
+Эта диагностика не меняет решения импорта и не разрешает несовпадающие снимки.
+
 `CALENDAR_LOG_LEVEL` управляет логами фонового сервиса: `silent`, `error`, `info`
 (по умолчанию), `debug`. Compose передаёт переменную обоим вариантам запуска
 основного сервиса. CLI сохраняют собственный вывод результатов.
