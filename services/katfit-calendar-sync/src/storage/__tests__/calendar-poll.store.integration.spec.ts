@@ -146,6 +146,44 @@ describeWithDatabase('Calendar ingestion with isolated PostgreSQL', () => {
     expect((await generation())[0].readGeneration).toBe(2);
   });
 
+  it('saves healthy members of a partial snapshot without inferring deletions or refreshing full-read freshness', async () => {
+    await poller.runOnce();
+    const freshness = await source.query('SELECT "lastSuccessfulReadAt" FROM calendar_sync."calendarConnection" WHERE id=$1', [id]);
+    await due();
+    reader.mockResolvedValue({
+      status: 'snapshot',
+      resources: [{ ...resource, url: `${calendarUrl}healthy.ics`, calendarData: calendarData.replace('UID:one', 'UID:healthy') }],
+      skippedResourceUrls: [resource.url],
+    });
+    expect(await poller.runOnce()).toBe('saved');
+    expect(await generation()).toEqual([{ readGeneration: 2, lastReadError: 'partial-snapshot' }]);
+    expect(await inbox()).toHaveLength(2);
+    expect((await inbox()).every((item) => item.kind === 'UPSERT')).toBe(true);
+    expect(await source.query('SELECT "lastSuccessfulReadAt" FROM calendar_sync."calendarConnection" WHERE id=$1', [id])).toEqual(freshness);
+    expect(await source.query('SELECT count(*)::int AS count FROM calendar_sync."calendarResource" WHERE "missingSinceGeneration" IS NOT NULL')).toEqual([{ count: 0 }]);
+
+    await due();
+    reader.mockResolvedValue({ status: 'snapshot', resources: [resource] });
+    await poller.runOnce();
+    expect((await generation())[0].lastReadError).toBeNull();
+    expect((await inbox()).filter((item) => item.kind === 'MISSING_CANDIDATE')).toHaveLength(1);
+  });
+
+  it('does not certify an all-skipped initial inventory as a successful complete read', async () => {
+    reader.mockResolvedValue({ status: 'snapshot', resources: [], skippedResourceUrls: [resource.url] });
+    expect(await poller.runOnce()).toBe('saved');
+    expect(await inbox()).toEqual([]);
+    expect(await source.query('SELECT "lastSuccessfulReadAt", "lastReadError" FROM calendar_sync."calendarConnection" WHERE id=$1', [id])).toEqual([{ lastSuccessfulReadAt: null, lastReadError: 'partial-snapshot' }]);
+  });
+
+  it('rejects an unsafe or overlapping skipped URL before changing the database', async () => {
+    const lease = await store.claimNext();
+    if (!lease) throw new Error('LEASE_REQUIRED');
+    await expect(store.commitSnapshot(lease, [resource], [resource.url])).rejects.toThrow('CALENDAR_SNAPSHOT_INVALID');
+    await expect(store.commitSnapshot(lease, [], ['https://other.example/event.ics'])).rejects.toThrow('CALENDAR_SNAPSHOT_INVALID');
+    expect(await inbox()).toEqual([]);
+  });
+
   it('preserves A → B → A as three distinct deliveries', async () => {
     await poller.runOnce();
     await due();

@@ -1,6 +1,14 @@
 import { createCalendarLogger, readCalendarLogLevel } from '../calendar-logger';
 
 describe('calendar structured logging', () => {
+  it('identifies skipped resources without logging their URLs', () => {
+    const write = jest.fn();
+    const logger = createCalendarLogger('info', write);
+    logger.event('error', 'calendar.resource.skipped', { resourceFingerprint: 'ab'.repeat(32), reason: 'CALDAV_SNAPSHOT_CHANGED_DURING_READ' });
+    expect(JSON.parse(write.mock.calls[0][0]).resourceFingerprint).toBe('ab'.repeat(32));
+    logger.event('error', 'calendar.resource.skipped', { resourceFingerprint: 'https://private-calendar.example/secret.ics' });
+    expect(write.mock.calls[1][0]).not.toContain('private-calendar');
+  });
   it('retains safe request diagnostics and rejects arbitrary strings and invalid sizes', () => {
     const write = jest.fn();
     const logger = createCalendarLogger('info', write);

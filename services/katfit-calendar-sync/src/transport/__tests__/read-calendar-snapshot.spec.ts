@@ -38,7 +38,6 @@ describe('readCalendarSnapshot', () => {
   });
 
   it.each([
-    [multistatus(member('one.ics', 'W/&quot;weak&quot;')), 207, 'CALDAV_SNAPSHOT_WEAK_ETAG'],
     [multistatus(member('../outside.ics')), 207, 'CALDAV_SNAPSHOT_RESOURCE_URL'],
     ['<html>private-content</html>', 207, 'CALDAV_SNAPSHOT_MULTISTATUS'],
     ['private-content', 404, 'CALDAV_SNAPSHOT_HTTP_STATUS'],
@@ -103,7 +102,7 @@ describe('readCalendarSnapshot', () => {
     })).mockResolvedValueOnce(new Response(resourceData, {
       headers: { 'Content-Type': 'text/calendar', ETag: '"verified"' },
     }));
-    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'snapshot', resources: [], skippedResourceUrls: [`${calendarUrl}one.ics`] });
     expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.comparison', expect.objectContaining({
       result,
       differenceFields: result === 'content-different' ? ['uid'] : [],
@@ -115,7 +114,7 @@ describe('readCalendarSnapshot', () => {
       reportBytes: Buffer.byteLength(calendarData),
       resourceBytes: Buffer.byteLength(resourceData),
     }));
-    expect(event).toHaveBeenCalledWith('error', 'calendar.snapshot.rejected', expect.objectContaining({
+    expect(event).toHaveBeenCalledWith('error', 'calendar.resource.skipped', expect.objectContaining({
       attemptId: comparison?.attemptId,
       reason: 'CALDAV_SNAPSHOT_CHANGED_DURING_READ',
     }));
@@ -129,7 +128,7 @@ describe('readCalendarSnapshot', () => {
     })).mockResolvedValueOnce(new Response(calendarData.replace('UID:one', 'UID:changed'), {
       headers: { 'Content-Type': 'text/calendar', ETag: '"verified"' },
     }));
-    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'snapshot', resources: [], skippedResourceUrls: [`${calendarUrl}one.ics`] });
   });
 
   it('does not promote a weak GET validator into a strong one', async () => {
@@ -138,7 +137,7 @@ describe('readCalendarSnapshot', () => {
     })).mockResolvedValueOnce(new Response(calendarData, {
       headers: { 'Content-Type': 'text/calendar', ETag: 'W/"weak"' },
     }));
-    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'snapshot', resources: [], skippedResourceUrls: [`${calendarUrl}one.ics`] });
   });
 
   it('accepts a valid empty inventory', async () => {
@@ -149,13 +148,44 @@ describe('readCalendarSnapshot', () => {
     });
   });
 
+  it('continues reading valid resources after a mismatched member', async () => {
+    const event = jest.spyOn(calendarLogger, 'event').mockImplementation();
+    fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted') + member('two.ics')), {
+      status: 207, headers: { 'Content-Type': 'application/xml' },
+    })).mockResolvedValueOnce(new Response(calendarData.replace('UID:one', 'UID:changed'), {
+      headers: { 'Content-Type': 'text/calendar', ETag: '"changed"' },
+    }));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({
+      status: 'snapshot',
+      resources: [{ url: `${calendarUrl}two.ics`, etag: '"v1"', calendarData }],
+      skippedResourceUrls: [`${calendarUrl}one.ics`],
+    });
+    expect(event).toHaveBeenCalledWith('error', 'calendar.resource.skipped', expect.objectContaining({
+      reason: 'CALDAV_SNAPSHOT_CHANGED_DURING_READ', resourceFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+    }));
+    expect(JSON.stringify(event.mock.calls)).not.toContain(calendarUrl);
+  });
+
+  it('does not hide duplicate URLs behind a skipped member', async () => {
+    fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted') + member('one.ics')), {
+      status: 207, headers: { 'Content-Type': 'application/xml' },
+    })).mockResolvedValueOnce(new Response('', { status: 404 }));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: 'invalid-snapshot' });
+  });
+
+  it.each([401, 403])('keeps authentication failures fatal for the connection (%s)', async (status) => {
+    fetch.mockResolvedValueOnce(new Response(multistatus(member('one.ics', 'unquoted') + member('two.ics')), {
+      status: 207, headers: { 'Content-Type': 'application/xml' },
+    })).mockResolvedValueOnce(new Response('', { status }));
+    expect(await readCalendarSnapshot(calendarUrl, fetch)).toEqual({ status: status === 401 ? 'auth-required' : 'forbidden' });
+  });
+
   it.each([
     member('one.ics') + member('two.ics', '&quot;v2&quot;', '403 Forbidden'),
     member('one.ics') + member('one.ics'),
     member('../outside.ics'),
     member('https://other.example/one.ics'),
     member('nested%2fone.ics'),
-    member('one.ics', 'W/&quot;weak&quot;'),
   ])(
     'rejects the entire partial, duplicate or unsafe inventory',
     async (body) => {

@@ -79,12 +79,17 @@ export class CalendarPollStore {
   async commitSnapshot(
     lease: CalendarPollLease,
     resources: CalendarResourceSnapshot[],
+    skippedResourceUrls: string[] = [],
   ): Promise<boolean> {
+    const resourceUrls = [
+      ...resources.map((resource) => resource.url),
+      ...skippedResourceUrls,
+    ];
     if (
-      resources.length > 2000 ||
-      new Set(resources.map((value) => value.url)).size !== resources.length ||
-      resources.some(
-        (value) => !isCalendarResourceUrl(lease.calendarUrl, value.url),
+      resourceUrls.length > 2000 ||
+      new Set(resourceUrls).size !== resourceUrls.length ||
+      resourceUrls.some(
+        (url) => !isCalendarResourceUrl(lease.calendarUrl, url),
       )
     ) {
       throw new Error('CALENDAR_SNAPSHOT_INVALID');
@@ -160,26 +165,30 @@ export class CalendarPollStore {
         );
       }
 
-      // Absence from a complete inventory is a hint for verification, never an automatic cancellation.
-      await manager.query(
-        `WITH missing AS (
+      // A partial read cannot establish absence or certify a complete snapshot for activation.
+      if (skippedResourceUrls.length === 0) {
+        await manager.query(
+          `WITH missing AS (
           UPDATE "calendar_sync"."calendarResource"
           SET "missingSinceGeneration" = $3, "resourceVersion" = "resourceVersion" + 1
           WHERE "workspaceId" = $1 AND "connectionId" = $2 AND "lastSeenGeneration" <> $3 AND "missingSinceGeneration" IS NULL
           RETURNING *
         ) INSERT INTO "calendar_sync"."calendarInbox" ("workspaceId", "connectionId", "resourceId", "resourceVersion", "kind", "etag", "contentHash", "calendarData")
           SELECT "workspaceId", "connectionId", "id", "resourceVersion", 'MISSING_CANDIDATE', "etag", "contentHash", NULL FROM missing`,
-        [lease.workspaceId, lease.id, generation],
-      );
+          [lease.workspaceId, lease.id, generation],
+        );
+      }
       const committed = await manager.query<Array<{ id: string }>>(
         `WITH updated AS (
           UPDATE "calendar_sync"."calendarConnection"
-          SET "readGeneration" = $5, "lastSuccessfulReadAt" = now(), "lastReadError" = NULL,
+          SET "readGeneration" = $5,
+            "lastSuccessfulReadAt" = CASE WHEN $6 THEN "lastSuccessfulReadAt" ELSE now() END,
+            "lastReadError" = CASE WHEN $6 THEN 'partial-snapshot' ELSE NULL END,
             "pollLeaseUntil" = NULL, "nextPollAt" = now() + interval '60 seconds' + random() * interval '10 seconds'
           WHERE "workspaceId" = $1 AND "id" = $2 AND "configurationVersion" = $3 AND "pollLeaseGeneration" = $4
             AND "pollLeaseUntil" > clock_timestamp() AND "state" IN ('PREVIEW', 'ACTIVE') RETURNING "id"
         ) SELECT * FROM updated`,
-        [...this.parameters(lease), generation],
+        [...this.parameters(lease), generation, skippedResourceUrls.length > 0],
       );
       if (committed.length === 0) throw new Error('CALENDAR_POLL_LEASE_LOST');
       return true;

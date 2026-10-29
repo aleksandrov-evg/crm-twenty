@@ -42,9 +42,10 @@ export class CalendarActivationStore {
         configurationVersion: number;
         readGeneration: number;
         lastSuccessfulReadAt: Date | null;
+        lastReadError: string | null;
       }[] = await manager.query(
         `
-        SELECT state, "configurationVersion", "readGeneration", "lastSuccessfulReadAt" FROM calendar_sync."calendarConnection"
+        SELECT state, "configurationVersion", "readGeneration", "lastSuccessfulReadAt", "lastReadError" FROM calendar_sync."calendarConnection"
         WHERE "workspaceId" = $1 AND id = $2 FOR UPDATE`,
         [this.scope.workspaceId, this.scope.connectionId],
       );
@@ -70,6 +71,7 @@ export class CalendarActivationStore {
       if (Date.now() - Date.parse(evidence.checkedAt) > 60000)
         throw new Error('CALENDAR_ACTIVATION_EVIDENCE_INVALID');
       if (
+        connection.lastReadError ||
         !connection.readGeneration ||
         !connection.lastSuccessfulReadAt ||
         Date.now() - connection.lastSuccessfulReadAt.getTime() > 90000

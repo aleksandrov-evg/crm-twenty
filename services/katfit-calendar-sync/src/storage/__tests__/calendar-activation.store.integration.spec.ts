@@ -235,6 +235,14 @@ describeWithDatabase(
       ).rejects.toThrow('CALENDAR_ACTIVATION_SNAPSHOT_REQUIRED');
     });
 
+    it('does not activate from a recent but partial inventory', async () => {
+      await prepare();
+      await source.query('UPDATE calendar_sync."calendarConnection" SET "lastReadError" = $1', ['partial-snapshot']);
+      const evidence = createCapabilityFixture(workspaceId).evidence;
+      await expect(activations(evidence.binding).activate(1, evidence)).rejects.toThrow('CALENDAR_ACTIVATION_SNAPSHOT_REQUIRED');
+      expect(await source.query('SELECT * FROM calendar_sync."calendarActivation"')).toEqual([]);
+    });
+
     it('blocks unresolved current reviews', async () => {
       reader.mockResolvedValue({
         status: 'snapshot',

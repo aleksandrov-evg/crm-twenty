@@ -6,6 +6,8 @@ import {
 export type CalendarLogLevel = 'silent' | 'error' | 'info' | 'debug';
 type EventLevel = Exclude<CalendarLogLevel, 'silent'>;
 type Fields = {
+  resourceFingerprint?: string;
+  skippedCount?: number;
   attemptId?: string;
   requestMethod?: 'REPORT' | 'GET';
   reportBytes?: number;
@@ -48,12 +50,14 @@ const EVENTS = new Set([
   'calendar.snapshot',
   'calendar.snapshot.rejected',
   'calendar.snapshot.comparison',
+  'calendar.resource.skipped',
   'calendar.request.failed',
   'crm.creation',
   'calendar.description',
   'calendar.schedule',
 ]);
 const LABELS = new Set([
+  'partial-snapshot',
   'trailing-newline',
   'line-folding',
   'content-different',
@@ -247,6 +251,8 @@ export const createCalendarLogger = (
   event: (severity: EventLevel, event: string, fields: Fields = {}): void => {
     if (PRIORITY[severity] > PRIORITY[level] || !EVENTS.has(event)) return;
     const safe: Record<string, string | number | string[]> = {};
+    if (typeof fields.resourceFingerprint === 'string' && /^[a-f0-9]{64}$/.test(fields.resourceFingerprint))
+      safe.resourceFingerprint = fields.resourceFingerprint;
     if (fields.differenceFields) {
       const allowed = new Set<string>(CALENDAR_DIFFERENCE_FIELDS);
       safe.differenceFields = fields.differenceFields.filter((field) => allowed.has(field)).slice(0, 30);
@@ -287,7 +293,7 @@ export const createCalendarLogger = (
       safe.httpStatus = httpStatus;
     if (fields.requestMethod === 'REPORT' || fields.requestMethod === 'GET')
       safe.requestMethod = fields.requestMethod;
-    for (const key of ['count', 'durationMs', 'reportBytes', 'resourceBytes'] as const) {
+    for (const key of ['count', 'durationMs', 'reportBytes', 'resourceBytes', 'skippedCount'] as const) {
       const value = fields[key];
       if (typeof value === 'number' && Number.isFinite(value) && value >= 0)
         safe[key] = value;

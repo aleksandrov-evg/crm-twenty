@@ -1,5 +1,5 @@
 import { isCalendarResourceUrl } from './is-calendar-resource-url';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { describeCalendarNetworkError } from '../observability/describe-calendar-network-error';
 import { describeCalendarDataDifference } from './describe-calendar-data-difference';
 import { readCalendarResource } from './read-calendar-resource';
@@ -17,7 +17,11 @@ export type CalendarResourceSnapshot = {
   calendarData: string;
 };
 export type CalendarSnapshotResult =
-  | { status: 'snapshot'; resources: CalendarResourceSnapshot[] }
+  | {
+      status: 'snapshot';
+      resources: CalendarResourceSnapshot[];
+      skippedResourceUrls?: string[];
+    }
   | {
       status:
         | 'auth-required'
@@ -108,6 +112,15 @@ export const readCalendarSnapshot = async (
           : [parsed.multistatus.response];
     if (entries.length > 2000) return reject('CALDAV_SNAPSHOT_RESOURCE_LIMIT');
     const resources: CalendarResourceSnapshot[] = [];
+    const skippedResourceUrls: string[] = [];
+    const skipResource = (url: string, reason: string) => {
+      skippedResourceUrls.push(url);
+      calendarLogger.event('error', 'calendar.resource.skipped', {
+        attemptId,
+        resourceFingerprint: createHash('sha256').update(url).digest('hex'),
+        reason,
+      });
+    };
     const urls = new Set<string>();
     let fallbackReads = 0;
 
@@ -137,13 +150,17 @@ export const readCalendarSnapshot = async (
       if (!isCalendarResourceUrl(calendarUrl, url))
         return reject('CALDAV_SNAPSHOT_RESOURCE_URL');
       if (urls.has(url)) return reject('CALDAV_SNAPSHOT_DUPLICATE_URL');
+      urls.add(url);
       if (!isCalendarEtag(etag) || !etag.startsWith('"')) {
         if (++fallbackReads > 50) return reject('CALDAV_SNAPSHOT_ETAG_READ_LIMIT');
         // REPORT and HTTP validators may differ; confirm the HTTP value with matching content.
         const resource = await readCalendarResource(calendarUrl, url, fetch, { attemptId });
-        if (resource.status === 'auth-required' || resource.status === 'forbidden' || resource.status === 'unavailable')
+        if (resource.status === 'auth-required' || resource.status === 'forbidden')
           return { status: resource.status };
-        if (resource.status !== 'read') return reject('CALDAV_SNAPSHOT_WEAK_ETAG');
+        if (resource.status !== 'read') {
+          skipResource(url, resource.status === 'unavailable' ? 'unavailable' : 'CALDAV_SNAPSHOT_WEAK_ETAG');
+          continue;
+        }
         // XML calendar-data may use LF while the HTTP resource uses CRLF.
         const reportData = calendarData.replace(/\r\n/g, '\n');
         const resourceData = resource.calendarData.replace(/\r\n/g, '\n');
@@ -164,7 +181,8 @@ export const readCalendarSnapshot = async (
                     ? 'serialization-different'
                     : 'content-different',
           });
-          return reject('CALDAV_SNAPSHOT_CHANGED_DURING_READ');
+          skipResource(url, 'CALDAV_SNAPSHOT_CHANGED_DURING_READ');
+          continue;
         }
         etag = resource.etag;
         calendarData = resource.calendarData;
@@ -172,12 +190,17 @@ export const readCalendarSnapshot = async (
       if (
         !/^BEGIN:VCALENDAR(?:\r\n|\r|\n)/.test(calendarData) ||
         !/(?:\r\n|\r|\n)END:VCALENDAR(?:\r\n|\r|\n)?$/.test(calendarData)
-      )
-        return reject('CALDAV_SNAPSHOT_ICALENDAR');
-      urls.add(url);
+      ) {
+        skipResource(url, 'CALDAV_SNAPSHOT_ICALENDAR');
+        continue;
+      }
       resources.push({ url, etag, calendarData });
     }
-    return { status: 'snapshot', resources };
+    return {
+      status: 'snapshot',
+      resources,
+      ...(skippedResourceUrls.length ? { skippedResourceUrls } : {}),
+    };
   } catch (error: unknown) {
     const networkReason = describeCalendarNetworkError(error);
     calendarLogger.event('error', 'calendar.request.failed', {

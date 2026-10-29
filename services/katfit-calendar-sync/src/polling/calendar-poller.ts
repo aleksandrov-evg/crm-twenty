@@ -41,11 +41,13 @@ export class CalendarPoller {
         const committed = await this.store.commitSnapshot(
           lease,
           snapshot.resources,
+          snapshot.skippedResourceUrls,
         );
-        calendarLogger.event('debug', 'calendar.snapshot', {
+        calendarLogger.event(snapshot.skippedResourceUrls?.length ? 'error' : 'debug', 'calendar.snapshot', {
           connectionId: lease.id,
-          result: committed ? 'saved' : 'stale',
+          result: committed ? (snapshot.skippedResourceUrls?.length ? 'partial-snapshot' : 'saved') : 'stale',
           count: snapshot.resources.length,
+          skippedCount: snapshot.skippedResourceUrls?.length ?? 0,
         });
         return committed ? 'saved' : 'stale';
       }
